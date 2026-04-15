@@ -1,0 +1,130 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f1117;
+  color: #f5f7fb;
+}
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 250px;
+  background: #181c25;
+  border-right: 1px solid #2a3140;
+  padding: 24px 16px;
+}
+
+.brand {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.nav {
+  display: block;
+  color: #d6deeb;
+  text-decoration: none;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  background: transparent;
+}
+
+.nav:hover,
+.nav.active {
+  background: #242c39;
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+}
+
+.topbar {
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.card {
+  background: #171b24;
+  border: 1px solid #2a3140;
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+input {
+  background: #10151d;
+  color: white;
+  border: 1px solid #334055;
+  border-radius: 12px;
+  padding: 12px 14px;
+  min-width: 240px;
+}
+
+button {
+  background: #3b82f6;
+  color: white;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+.pill-wrap {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill,
+.big-pill,
+.guild-link {
+  background: #222938;
+  border: 1px solid #334055;
+  border-radius: 999px;
+  padding: 8px 12px;
+  display: inline-block;
+}
+
+.big-pill {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.guild-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.guild-link {
+  color: white;
+  text-decoration: none;
+}
+
+.check {
+  display: block;
+  margin-bottom: 12px;
+}
