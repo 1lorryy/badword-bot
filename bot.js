@@ -611,7 +611,7 @@ async function handlePrefixCommand(message, cfg) {
     await sendUserDM(member.user, dmEmbed);
 await sendModActionEmbed(channelEmbed);
 await sendTempReply(message, `✅ Warned ${member.user.tag}.`);
-    return true;
+return true;
   }
 
   if (command === "unwarn") {
@@ -781,7 +781,7 @@ await sendTempReply(message, `✅ Warned ${member.user.tag}.`);
 
     await sendModActionEmbed(channelEmbed);
 await sendTempReply(message, `✅ Banned ${member.user.tag}.`);
-    return true;
+return true;
   }
 
   if (command === "unban") {
