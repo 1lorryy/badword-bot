@@ -1,37 +1,35 @@
+const { EmbedBuilder } = require("discord.js");
+
 const ADMIN_ROLE_ID = "1481370041441189959";
 const MANAGER_ROLE_ID = "1499376933635489893";
 const SELLER_ROLE_ID = "1499376701220585575";
 
-function canUseAuctionStaff(message) {
-  if (!message.member) return false;
-
-  // Admin permission always allowed
-  if (message.member.permissions.has("Administrator")) return true;
-
-  const roles = message.member.roles.cache;
-
-  return (
-    roles.has(ADMIN_ROLE_ID) ||
-    roles.has(MANAGER_ROLE_ID) ||
-    roles.has(SELLER_ROLE_ID)
-  );
-}
-const { EmbedBuilder } = require("discord.js");
-
 let activeAuction = null;
 let auctionTimer = null;
 
+function canUseAuctionStaff(message) {
+  if (!message.member) return false;
+
+  if (message.member.permissions.has("Administrator")) return true;
+
+  return (
+    message.member.roles.cache.has(ADMIN_ROLE_ID) ||
+    message.member.roles.cache.has(MANAGER_ROLE_ID) ||
+    message.member.roles.cache.has(SELLER_ROLE_ID)
+  );
+}
+
 function parseTime(input) {
-  const match = String(input).toLowerCase().match(/^(\d+)(s|m|min|h|d)$/);
+  const match = String(input).toLowerCase().match(/^(\d+)(s|sec|m|min|h|hr|d|day)$/);
   if (!match) return null;
 
-  const num = parseInt(match[1]);
+  const num = parseInt(match[1], 10);
   const unit = match[2];
 
-  if (unit === "s") return num * 1000;
+  if (unit === "s" || unit === "sec") return num * 1000;
   if (unit === "m" || unit === "min") return num * 60 * 1000;
-  if (unit === "h") return num * 60 * 60 * 1000;
-  if (unit === "d") return num * 24 * 60 * 60 * 1000;
+  if (unit === "h" || unit === "hr") return num * 60 * 60 * 1000;
+  if (unit === "d" || unit === "day") return num * 24 * 60 * 60 * 1000;
 
   return null;
 }
@@ -102,7 +100,7 @@ async function finishAuction(cancelled = false) {
   });
 }
 
-async function handleAuctionCommand(message, args, prefix, canManageGuild) {
+async function handleAuctionCommand(message, args, prefix) {
   const sub = args.shift()?.toLowerCase();
 
   if (!sub) {
@@ -111,7 +109,7 @@ async function handleAuctionCommand(message, args, prefix, canManageGuild) {
   }
 
   if (["start", "end", "cancel"].includes(sub)) {
-  if (!canUseAuctionStaff(message)) {
+    if (!canUseAuctionStaff(message)) {
       await message.reply("❌ You do not have permission.");
       return true;
     }
@@ -131,7 +129,7 @@ async function handleAuctionCommand(message, args, prefix, canManageGuild) {
     }
 
     const item = parts[0];
-    const startPrice = parseInt(parts[1]);
+    const startPrice = parseInt(parts[1], 10);
     const timeMs = parseTime(parts[2]);
 
     if (!item || isNaN(startPrice) || !timeMs) {
@@ -178,7 +176,7 @@ async function handleAuctionCommand(message, args, prefix, canManageGuild) {
       return true;
     }
 
-    const amount = parseInt(args[0]);
+    const amount = parseInt(args[0], 10);
 
     if (isNaN(amount)) {
       await message.reply(`Usage: ${prefix}bid amount`);
