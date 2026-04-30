@@ -294,16 +294,19 @@ function hasBypassRole(message) {
   return !!(BYPASS_ROLE_ID && message.member?.roles?.cache?.has(BYPASS_ROLE_ID));
 }
 
+const ADMIN_ROLE_ID = "1481370041441189959";
+
 function canManageGuild(message) {
-  const hasAdminPerm =
-    message.member?.permissions?.has(PermissionsBitField.Flags.ManageGuild) ||
-    message.member?.permissions?.has(PermissionsBitField.Flags.Administrator);
+  if (!message.member) return false;
 
-  const hasAllowedRole =
-    MOD_ROLE_IDS.length > 0 &&
-    MOD_ROLE_IDS.some((roleId) => message.member?.roles?.cache?.has(roleId));
+  if (message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+    return true;
+  }
 
-  return hasAdminPerm || hasAllowedRole;
+  const adminRole = message.guild.roles.cache.get(ADMIN_ROLE_ID);
+  if (!adminRole) return false;
+
+  return message.member.roles.cache.some(role => role.position >= adminRole.position);
 }
 
 function getChannelMention(message) {
@@ -455,6 +458,14 @@ async function handlePrefixCommand(message, cfg) {
 
   const args = message.content.slice(prefix.length).trim().split(/\s+/);
   const command = (args.shift() || "").toLowerCase();
+if (command === "auction") {
+  return await handleAuctionCommand(message, args, prefix, canManageGuild);
+}
+
+if (command === "bid") {
+  return await handleAuctionCommand(message, ["bid", ...args], prefix, canManageGuild);
+}
+
 if (command === "auction") {
   return await handleAuctionCommand(message, args, prefix);
 }
@@ -909,6 +920,11 @@ return true;
         `${prefix}ban @user reason`,
         `${prefix}unban userId reason`
         `${prefix}role @user role`,
+        `${prefix}auction start item | price | time`,
+        `${prefix}bid amount`,
+        `${prefix}auction status`,
+        `${prefix}auction end`,
+        `${prefix}auction cancel`,
       ].join("\n")
     );
     return true;
