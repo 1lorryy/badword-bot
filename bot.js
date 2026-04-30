@@ -1,3 +1,5 @@
+const { handleAuctionCommand } = require("./commands/auction");
+
 const { handleModerationCommand } = require("./commands/moderation");
 
 const fs = require("fs");
@@ -453,6 +455,13 @@ async function handlePrefixCommand(message, cfg) {
 
   const args = message.content.slice(prefix.length).trim().split(/\s+/);
   const command = (args.shift() || "").toLowerCase();
+if (command === "auction") {
+  return await handleAuctionCommand(message, args, prefix);
+}
+
+if (command === "bid") {
+  return await handleAuctionCommand(message, ["bid", ...args], prefix);
+}
 
   if (!command) return true;
 
