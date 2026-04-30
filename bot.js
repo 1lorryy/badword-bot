@@ -815,6 +815,69 @@ return true;
     return true;
   }
 
+  if (command === "role") {
+    if (!canManageGuild(message)) {
+      await sendTempReply(message, "You do not have permission.");
+      return true;
+    }
+
+    if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
+      await sendTempReply(message, "I need Manage Roles permission.");
+      return true;
+    }
+
+    const member =
+      message.mentions.members.first() ||
+      await message.guild.members.fetch(args[0]).catch(() => null);
+
+    if (!member) {
+      await sendTempReply(message, `Usage: ${prefix}role @user role`);
+      return true;
+    }
+
+    const roleInput = args.slice(1).join(" ").trim();
+
+    if (!roleInput) {
+      await sendTempReply(message, `Usage: ${prefix}role @user role`);
+      return true;
+    }
+
+    const role =
+      message.mentions.roles.first() ||
+      message.guild.roles.cache.find(r => r.name.toLowerCase() === roleInput.toLowerCase()) ||
+      message.guild.roles.cache.get(roleInput.replace(/[<@&>]/g, ""));
+
+    if (!role) {
+      await sendTempReply(message, "Role not found.");
+      return true;
+    }
+
+    if (role.managed) {
+      await sendTempReply(message, "I cannot manage this role.");
+      return true;
+    }
+
+    if (role.position >= message.guild.members.me.roles.highest.position) {
+      await sendTempReply(message, "That role is higher than or equal to my highest role.");
+      return true;
+    }
+
+    if (role.position >= message.member.roles.highest.position && !message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      await sendTempReply(message, "You cannot manage a role higher than or equal to your highest role.");
+      return true;
+    }
+
+    if (member.roles.cache.has(role.id)) {
+      await member.roles.remove(role, `Role removed by ${message.author.tag}`);
+      await sendReply(message, `✅ Removed **${role.name}** from ${member.user.tag}.`);
+    } else {
+      await member.roles.add(role, `Role added by ${message.author.tag}`);
+      await sendReply(message, `✅ Added **${role.name}** to ${member.user.tag}.`);
+    }
+
+    return true;
+  }
+
   if (command === "help") {
     await sendReply(
       message,
@@ -836,6 +899,7 @@ return true;
         `${prefix}unmute @user`,
         `${prefix}ban @user reason`,
         `${prefix}unban userId reason`
+        `${prefix}role @user role`,
       ].join("\n")
     );
     return true;
