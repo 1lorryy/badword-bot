@@ -18,7 +18,7 @@ const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID || "";
 const MOD_ACTION_CHANNEL_ID = "1492845794192134245";
 const BYPASS_ROLE_ID = process.env.BYPASS_ROLE_ID || "";
 const DEFAULT_PREFIX = process.env.DEFAULT_PREFIX || "?";
-const MOD_ROLE_IDS = String(process.env.MOD_ROLE_IDS || "")
+const ADMIN_ROLE_IDS = String(process.env.MOD_ROLE_IDS || "")
   .split(",")
   .map((id) => id.trim())
   .filter(Boolean);
@@ -294,12 +294,9 @@ function hasBypassRole(message) {
   return !!(BYPASS_ROLE_ID && message.member?.roles?.cache?.has(BYPASS_ROLE_ID));
 }
 
-const ADMIN_ROLE_ID = "1481370041441189959";
-
-function canManageGuild(message) {
-  const STAFF_ROLE_ID = "1481370041420087474";
+const STAFF_ROLE_ID = "1481370041420087474";
 const MOD_ROLE_ID = "1481370041432932379";
-const ADMIN_ROLE_ID = "1481370041441189959";
+const MAIN_ADMIN_ROLE_ID = "1481370041441189959";
 
 function canManageGuild(message) {
   if (!message.member) return false;
@@ -308,7 +305,7 @@ function canManageGuild(message) {
 
   return (
     message.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
-    roles.has(ADMIN_ROLE_ID) ||
+    roles.has(MAIN_ADMIN_ROLE_ID) ||
     roles.has(STAFF_ROLE_ID) ||
     roles.has(MOD_ROLE_ID)
   );
@@ -463,13 +460,6 @@ async function handlePrefixCommand(message, cfg) {
 
   const args = message.content.slice(prefix.length).trim().split(/\s+/);
   const command = (args.shift() || "").toLowerCase();
-if (command === "auction") {
-  return await handleAuctionCommand(message, args, prefix, canManageGuild);
-}
-
-if (command === "bid") {
-  return await handleAuctionCommand(message, ["bid", ...args], prefix, canManageGuild);
-}
 
 if (command === "auction") {
   return await handleAuctionCommand(message, args, prefix);
@@ -923,7 +913,7 @@ return true;
         `${prefix}mute @user 1min reason`,
         `${prefix}unmute @user`,
         `${prefix}ban @user reason`,
-        `${prefix}unban userId reason`
+        `${prefix}unban userId reason`,
         `${prefix}role @user role`,
         `${prefix}auction start item | price | time`,
         `${prefix}bid amount`,
