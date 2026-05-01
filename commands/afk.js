@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, PermissionsBitField } = require("discord.js");
 
 const afkUsers = new Map();
 
@@ -16,12 +16,23 @@ function formatDuration(ms) {
 
 async function handleAfkCommand(message, args, prefix) {
   const reason = args.join(" ").trim() || "AFK";
+  const member = message.member;
+  const oldNickname = member.nickname || member.user.username;
 
   afkUsers.set(message.author.id, {
     reason,
     since: Date.now(),
-    pings: []
+    pings: [],
+    oldNickname
   });
+
+  if (
+    message.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageNicknames) &&
+    member.manageable
+  ) {
+    const newNick = `[AFK] ${oldNickname}`.slice(0, 32);
+    await member.setNickname(newNick, "User went AFK").catch(() => null);
+  }
 
   await message.reply(`${message.author} is now AFK - ${reason}`).catch(() => null);
   return true;
@@ -36,6 +47,13 @@ async function handleAfkMentionsAndReturn(message, prefix) {
     afkUsers.delete(message.author.id);
 
     const awayFor = formatDuration(Date.now() - authorAfk.since);
+
+    if (
+      message.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageNicknames) &&
+      message.member.manageable
+    ) {
+      await message.member.setNickname(authorAfk.oldNickname, "User returned from AFK").catch(() => null);
+    }
 
     const pingList = authorAfk.pings.length
       ? authorAfk.pings
