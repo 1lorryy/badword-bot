@@ -23,17 +23,7 @@ async function handleAfkCommand(message, args, prefix) {
     pings: []
   });
 
-  await message.reply({
-    embeds: [
-      new EmbedBuilder()
-        .setTitle("💤 AFK Set")
-        .setColor(0x5865f2)
-        .setDescription(`${message.author} is now AFK.`)
-        .addFields({ name: "Reason", value: reason })
-        .setTimestamp()
-    ]
-  });
-
+  await message.reply(`${message.author} is now AFK - ${reason}`).catch(() => null);
   return true;
 }
 
@@ -52,7 +42,7 @@ async function handleAfkMentionsAndReturn(message, prefix) {
           .slice(-5)
           .map((p, i) => `${i + 1}. ${p.authorTag} — [jump](${p.url})`)
           .join("\n")
-      : "Nobody pinged you.";
+      : "NOBODY PINGED U - CRY ABOUT IT";
 
     await message.reply({
       embeds: [
@@ -63,7 +53,7 @@ async function handleAfkMentionsAndReturn(message, prefix) {
           .addFields(
             { name: "AFK Time", value: awayFor, inline: true },
             { name: "Reason", value: authorAfk.reason, inline: true },
-            { name: "Pings While AFK", value: pingList }
+            { name: "Pings While AFK", value: pingList, inline: false }
           )
           .setTimestamp()
       ]
@@ -74,8 +64,6 @@ async function handleAfkMentionsAndReturn(message, prefix) {
     const data = afkUsers.get(user.id);
     if (!data) continue;
 
-    const awayFor = formatDuration(Date.now() - data.since);
-
     data.pings.push({
       authorTag: message.author.tag,
       url: message.url,
@@ -84,19 +72,7 @@ async function handleAfkMentionsAndReturn(message, prefix) {
 
     if (data.pings.length > 10) data.pings.shift();
 
-    await message.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("💤 User is AFK")
-          .setColor(0xf59e0b)
-          .setDescription(`${user} is AFK.`)
-          .addFields(
-            { name: "Reason", value: data.reason, inline: false },
-            { name: "AFK For", value: awayFor, inline: true }
-          )
-          .setTimestamp()
-      ]
-    }).catch(() => null);
+    await message.reply(`${user} is AFK - ${data.reason}`).catch(() => null);
   }
 }
 
