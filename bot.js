@@ -1,4 +1,3 @@
-const { handleAuctionCommand } = require("./commands/auction");
 const { handleAfkCommand, handleAfkMentionsAndReturn } = require("./commands/afk");
 
 const { handleAuctionCommand } = require("./commands/auction");
