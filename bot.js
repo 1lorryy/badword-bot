@@ -1,6 +1,7 @@
 const { handleAuctionCommand } = require("./commands/auction");
+const { handleAfkCommand, handleAfkMentionsAndReturn } = require("./commands/afk");
 
-const { handleModerationCommand } = require("./commands/moderation");
+const { handleAuctionCommand } = require("./commands/auction");
 
 const fs = require("fs");
 const path = require("path");
@@ -461,6 +462,10 @@ async function handlePrefixCommand(message, cfg) {
   const args = message.content.slice(prefix.length).trim().split(/\s+/);
   const command = (args.shift() || "").toLowerCase();
 
+if (command === "afk") {
+  return await handleAfkCommand(message, args, prefix);
+}
+
 if (command === "auction") {
   return await handleAuctionCommand(message, args, prefix);
 }
@@ -920,6 +925,7 @@ return true;
         `${prefix}auction status`,
         `${prefix}auction end`,
         `${prefix}auction cancel`,
+        `${prefix}afk reason`,
       ].join("\n")
     );
     return true;
@@ -989,6 +995,7 @@ function startBot() {
       if (!me) return;
 
       const cfg = getGuildConfig(message.guild.id);
+await handleAfkMentionsAndReturn(message, cfg.prefix);
 
       const handledCommand = await handlePrefixCommand(message, cfg);
       if (handledCommand) return;

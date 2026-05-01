@@ -42,11 +42,7 @@ function auctionEmbed(title, color, auction) {
     .addFields(
       { name: "Item", value: auction.item, inline: false },
       { name: "Highest Bid", value: String(auction.highestBid), inline: true },
-      {
-        name: "Highest Bidder",
-        value: auction.highestBidder ? `<@${auction.highestBidder}>` : "No bids yet",
-        inline: true
-      }
+      { name: "Highest Bidder", value: auction.highestBidder ? `<@${auction.highestBidder}>` : "No bids yet", inline: true }
     )
     .setTimestamp();
 }
@@ -57,13 +53,11 @@ async function finishAuction(cancelled = false) {
   const auction = activeAuction;
   activeAuction = null;
 
-  if (auctionTimer) {
-    clearTimeout(auctionTimer);
-    auctionTimer = null;
-  }
+  if (auctionTimer) clearTimeout(auctionTimer);
+  auctionTimer = null;
 
   if (cancelled) {
-    await auction.channel.send({
+    return auction.channel.send({
       embeds: [
         new EmbedBuilder()
           .setTitle("❌ Auction Cancelled")
@@ -71,11 +65,10 @@ async function finishAuction(cancelled = false) {
           .setDescription(`Auction for **${auction.item}** was cancelled.`)
       ]
     });
-    return;
   }
 
   if (!auction.highestBidder) {
-    await auction.channel.send({
+    return auction.channel.send({
       embeds: [
         new EmbedBuilder()
           .setTitle("⏰ Auction Ended")
@@ -83,10 +76,9 @@ async function finishAuction(cancelled = false) {
           .setDescription(`Auction for **${auction.item}** ended with no bids.`)
       ]
     });
-    return;
   }
 
-  await auction.channel.send({
+  return auction.channel.send({
     embeds: [
       new EmbedBuilder()
         .setTitle("🏆 Auction Ended")
@@ -200,30 +192,19 @@ async function handleAuctionCommand(message, args, prefix) {
   }
 
   if (sub === "end") {
-    if (!activeAuction) {
-      await message.reply("❌ No active auction.");
-      return true;
-    }
-
+    if (!activeAuction) return message.reply("❌ No active auction.");
     await finishAuction(false);
     return true;
   }
 
   if (sub === "cancel") {
-    if (!activeAuction) {
-      await message.reply("❌ No active auction.");
-      return true;
-    }
-
+    if (!activeAuction) return message.reply("❌ No active auction.");
     await finishAuction(true);
     return true;
   }
 
   if (sub === "status") {
-    if (!activeAuction) {
-      await message.reply("❌ No active auction.");
-      return true;
-    }
+    if (!activeAuction) return message.reply("❌ No active auction.");
 
     await message.channel.send({
       embeds: [auctionEmbed("📊 Auction Status", 0x5865f2, activeAuction)]
