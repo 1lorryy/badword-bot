@@ -10,18 +10,14 @@ let auctionTimer = null;
 function canUseAuctionStaff(message) {
   if (!message.member) return false;
 
-  if (message.member.permissions.has("Administrator")) return true;
+  const roles = message.member.roles.cache;
 
-  const adminRole = message.guild.roles.cache.get(ADMIN_ROLE_ID);
-
-  const hasAdminOrHigher =
-    adminRole &&
-    message.member.roles.cache.some(role => role.position >= adminRole.position);
-
-  const hasManager = message.member.roles.cache.has(MANAGER_ROLE_ID);
-  const hasSeller = message.member.roles.cache.has(SELLER_ROLE_ID);
-
-  return hasAdminOrHigher || hasManager || hasSeller;
+  return (
+    message.member.permissions.has("Administrator") ||
+    roles.has(ADMIN_ROLE_ID) ||
+    roles.has(MANAGER_ROLE_ID) ||
+    roles.has(SELLER_ROLE_ID)
+  );
 }
 
 function parseTime(input) {

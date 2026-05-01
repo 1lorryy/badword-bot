@@ -297,16 +297,21 @@ function hasBypassRole(message) {
 const ADMIN_ROLE_ID = "1481370041441189959";
 
 function canManageGuild(message) {
+  const STAFF_ROLE_ID = "1481370041420087474";
+const MOD_ROLE_ID = "1481370041432932379";
+const ADMIN_ROLE_ID = "1481370041441189959";
+
+function canManageGuild(message) {
   if (!message.member) return false;
 
-  if (message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-    return true;
-  }
+  const roles = message.member.roles.cache;
 
-  const adminRole = message.guild.roles.cache.get(ADMIN_ROLE_ID);
-  if (!adminRole) return false;
-
-  return message.member.roles.cache.some(role => role.position >= adminRole.position);
+  return (
+    message.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
+    roles.has(ADMIN_ROLE_ID) ||
+    roles.has(STAFF_ROLE_ID) ||
+    roles.has(MOD_ROLE_ID)
+  );
 }
 
 function getChannelMention(message) {
