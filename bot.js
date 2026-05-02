@@ -71,7 +71,7 @@ const legacyWords = loadLegacyWords();
 function defaultGuildConfig() {
   return {
     prefix: DEFAULT_PREFIX,
-    words: [...legacyWords],
+    words: [],
     blockedDomains: [...DEFAULT_BLOCKED_DOMAINS],
     blockDiscordInvites: true,
     blockAllLinks: false,
@@ -81,9 +81,13 @@ function defaultGuildConfig() {
 
 function ensureGuildConfig(guildId) {
   if (!guildStore[guildId]) {
-    guildStore[guildId] = defaultGuildConfig();
-    saveGuildStore(guildStore);
-  }
+  guildStore[guildId] = defaultGuildConfig();
+
+  // apply legacy ONLY once
+  guildStore[guildId].words = [...legacyWords];
+
+  saveGuildStore(guildStore);
+}
 
   const cfg = guildStore[guildId];
 
