@@ -4,6 +4,8 @@ const ADMIN_ROLE_ID = "1481370041441189959";
 const MANAGER_ROLE_ID = "1499376933635489893";
 const SELLER_ROLE_ID = "1499376701220585575";
 
+const ANTI_SNIPE_ADD_MS = 30 * 1000;
+
 let activeAuction = null;
 let auctionTimer = null;
 
@@ -35,6 +37,26 @@ function parseTime(input) {
   return null;
 }
 
+function formatTime(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const min = Math.floor(total / 60);
+  const sec = total % 60;
+  if (min > 0) return `${min}m ${sec}s`;
+  return `${sec}s`;
+}
+
+function resetAuctionTimer() {
+  if (!activeAuction) return;
+
+  if (auctionTimer) clearTimeout(auctionTimer);
+
+  const remaining = Math.max(0, activeAuction.endsAt - Date.now());
+
+  auctionTimer = setTimeout(() => {
+    finishAuction(false);
+  }, remaining);
+}
+
 function auctionEmbed(title, color, auction) {
   return new EmbedBuilder()
     .setTitle(title)
@@ -42,7 +64,16 @@ function auctionEmbed(title, color, auction) {
     .addFields(
       { name: "Item", value: auction.item, inline: false },
       { name: "Highest Bid", value: String(auction.highestBid), inline: true },
-      { name: "Highest Bidder", value: auction.highestBidder ? `<@${auction.highestBidder}>` : "No bids yet", inline: true }
+      {
+        name: "Highest Bidder",
+        value: auction.highestBidder ? `<@${auction.highestBidder}>` : "No bids yet",
+        inline: true
+      },
+      {
+        name: "Time Left",
+        value: formatTime(auction.endsAt - Date.now()),
+        inline: true
+      }
     )
     .setTimestamp();
 }
@@ -148,13 +179,14 @@ async function handleAuctionCommand(message, args, prefix) {
             { name: "Item", value: item, inline: false },
             { name: "Starting Price", value: String(startPrice), inline: true },
             { name: "Time", value: parts[2], inline: true },
+            { name: "Anti-Snipe", value: "+30s added after every bid", inline: true },
             { name: "Bid Command", value: `${prefix}bid amount`, inline: false }
           )
           .setTimestamp()
       ]
     });
 
-    auctionTimer = setTimeout(() => finishAuction(false), timeMs);
+    resetAuctionTimer();
     return true;
   }
 
@@ -183,9 +215,24 @@ async function handleAuctionCommand(message, args, prefix) {
 
     activeAuction.highestBid = amount;
     activeAuction.highestBidder = message.author.id;
+    activeAuction.endsAt += ANTI_SNIPE_ADD_MS;
+
+    resetAuctionTimer();
 
     await message.channel.send({
-      embeds: [auctionEmbed("💰 New Highest Bid", 0x22c55e, activeAuction)]
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("💰 New Highest Bid")
+          .setColor(0x22c55e)
+          .addFields(
+            { name: "Item", value: activeAuction.item, inline: false },
+            { name: "Bid", value: String(amount), inline: true },
+            { name: "Bidder", value: `<@${message.author.id}>`, inline: true },
+            { name: "Anti-Snipe", value: "+30s added", inline: true },
+            { name: "Time Left", value: formatTime(activeAuction.endsAt - Date.now()), inline: true }
+          )
+          .setTimestamp()
+      ]
     });
 
     return true;

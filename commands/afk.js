@@ -17,7 +17,9 @@ function formatDuration(ms) {
 async function handleAfkCommand(message, args, prefix) {
   const reason = args.join(" ").trim() || "AFK";
   const member = message.member;
-  const oldNickname = member.nickname || member.user.username;
+
+  const oldNickname = member.nickname;
+  const displayName = member.nickname || member.user.username;
 
   afkUsers.set(message.author.id, {
     reason,
@@ -30,7 +32,8 @@ async function handleAfkCommand(message, args, prefix) {
     message.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageNicknames) &&
     member.manageable
   ) {
-    const newNick = `[AFK] ${oldNickname}`.slice(0, 32);
+    const cleanName = displayName.replace(/^\[AFK\]\s*/i, "");
+    const newNick = `[AFK] ${cleanName}`.slice(0, 32);
     await member.setNickname(newNick, "User went AFK").catch(() => null);
   }
 
@@ -82,6 +85,8 @@ async function handleAfkMentionsAndReturn(message, prefix) {
     const data = afkUsers.get(user.id);
     if (!data) continue;
 
+    const awayFor = formatDuration(Date.now() - data.since);
+
     data.pings.push({
       authorTag: message.author.tag,
       url: message.url,
@@ -90,7 +95,7 @@ async function handleAfkMentionsAndReturn(message, prefix) {
 
     if (data.pings.length > 10) data.pings.shift();
 
-    await message.reply(`${user} is AFK - ${data.reason}`).catch(() => null);
+    await message.reply(`${user} is AFK for ${awayFor} - ${data.reason}`).catch(() => null);
   }
 }
 
