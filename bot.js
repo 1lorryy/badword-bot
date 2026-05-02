@@ -901,37 +901,71 @@ async function handlePrefixCommand(message, cfg) {
   }
 
   if (command === "help") {
-    await sendReply(
-      message,
-      [
-        `Commands:`,
-        `${prefix}ping`,
-        `${prefix}prefix`,
-        `${prefix}setprefix <new>`,
-        `${prefix}setnick @user nickname`,
-        `${prefix}words`,
-        `${prefix}bl <word>`,
-        `${prefix}unbl <word>`,
-        `${prefix}purge 1`,
-        `${prefix}purge @user 1`,
-        `${prefix}warn @user reason`,
-        `${prefix}unwarn @user`,
-        `${prefix}warnings @user`,
-        `${prefix}mute @user 1min reason`,
-        `${prefix}unmute @user`,
-        `${prefix}ban @user reason`,
-        `${prefix}unban userId reason`,
-        `${prefix}role @user role`,
-        `${prefix}auction start item price time`,
-        `${prefix}bid amount`,
-        `${prefix}auction status`,
-        `${prefix}auction end`,
-        `${prefix}auction cancel`,
-        `${prefix}afk reason`
-      ].join("\n")
-    );
-    return true;
-  }
+  const embed = new EmbedBuilder()
+    .setTitle("🔥 Bot Commands")
+    .setColor(0x5865f2)
+    .setDescription(`Prefix: \`${prefix}\``)
+    .addFields(
+      {
+        name: "🛡️ Moderation",
+        value: [
+          `\`${prefix}warn @user reason\``,
+          `\`${prefix}unwarn @user warnId\``,
+          `\`${prefix}warnings @user\``,
+          `\`${prefix}mute @user 1min reason\``,
+          `\`${prefix}unmute @user\``,
+          `\`${prefix}ban @user reason\``,
+          `\`${prefix}unban userId reason\``,
+          `\`${prefix}purge 1\``,
+          `\`${prefix}purge @user 1\``
+        ].join("\n"),
+        inline: false
+      },
+      {
+        name: "⚙️ Server",
+        value: [
+          `\`${prefix}setprefix <new>\``,
+          `\`${prefix}setnick @user nickname\``,
+          `\`${prefix}role @user role\``
+        ].join("\n"),
+        inline: false
+      },
+      {
+        name: "🚫 AutoMod",
+        value: [
+          `\`${prefix}words\``,
+          `\`${prefix}bl <word>\``,
+          `\`${prefix}unbl <word>\``
+        ].join("\n"),
+        inline: false
+      },
+      {
+        name: "🏆 Auction",
+        value: [
+          `\`${prefix}auction start item price time\``,
+          `\`${prefix}bid amount\``,
+          `\`${prefix}auction status\``,
+          `\`${prefix}auction end\``,
+          `\`${prefix}auction cancel\``
+        ].join("\n"),
+        inline: false
+      },
+      {
+        name: "💤 Fun / Utility",
+        value: [
+          `\`${prefix}afk reason\``,
+          `\`${prefix}ping\``,
+          `\`${prefix}prefix\``
+        ].join("\n"),
+        inline: false
+      }
+    )
+    .setFooter({ text: "🔥 DASHBOARD Bot" })
+    .setTimestamp();
+
+  await message.reply({ embeds: [embed] }).catch(() => null);
+  return true;
+}
 
   return false;
 }
