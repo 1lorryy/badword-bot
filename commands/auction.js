@@ -147,14 +147,22 @@ async function handleAuctionCommand(message, args, prefix) {
 
     const parts = args.join(" ").split("|").map(x => x.trim());
 
-    if (parts.length < 3) {
-      await message.reply(`Usage: ${prefix}auction start item | price | time`);
-      return true;
-    }
+    if (args.length < 3) {
+  await message.reply(`Usage: ${prefix}auction start item price time`);
+  return true;
+}
 
-    const item = parts[0];
-    const startPrice = parseInt(parts[1], 10);
-    const timeMs = parseTime(parts[2]);
+const timeInput = args[args.length - 1];
+const priceInput = args[args.length - 2];
+const item = args.slice(0, -2).join(" ");
+
+const startPrice = parseInt(priceInput, 10);
+const timeMs = parseTime(timeInput);
+
+if (!item || isNaN(startPrice) || !timeMs) {
+  await message.reply(`Example: ${prefix}auction start Nitro 100 10min`);
+  return true;
+}
 
     if (!item || isNaN(startPrice) || !timeMs) {
       await message.reply(`Example: ${prefix}auction start Nitro | 100 | 10min`);
