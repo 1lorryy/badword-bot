@@ -634,34 +634,39 @@ return true;
   }
 
   if (command === "unwarn") {
-    if (!canManageGuild(message)) {
-      await sendTempReply(message, "You do not have permission.");
-      return true;
-    }
+  if (!canManageGuild(message)) {
+    await sendTempReply(message, "You do not have permission.");
+    return true;
+  }
 
-    const member =
-      message.mentions.members.first() ||
-      await message.guild.members.fetch(args[0]).catch(() => null);
+  const member =
+    message.mentions.members.first() ||
+    await message.guild.members.fetch(args[0]).catch(() => null);
 
-    if (!member) {
-      await sendTempReply(message, `Usage: ${prefix}unwarn @user optionalWarnId`);
-      return true;
-    }
+  if (!member) {
+    await sendTempReply(message, `Usage: ${prefix}unwarn @user optionalWarnId`);
+    return true;
+  }
 
-    const warnId = args[1] || null;
-    const removed = removeWarning(message.guild.id, member.id, warnId);
+  const warnId = args[1] || null;
+  const removed = removeWarning(message.guild.id, member.id, warnId);
 
-    const embed = makeModEmbed(removed ? "✅ Warning Removed" : "❌ Warning Not Found", removed ? 0x22c55e : 0xef4444, [
+  const embed = makeModEmbed(
+    removed ? "✅ Warning Removed" : "❌ Warning Not Found",
+    removed ? 0x22c55e : 0xef4444,
+    [
       { name: "User", value: `${member.user.tag}`, inline: true },
       { name: "Moderator", value: `${message.author.tag}`, inline: true }
-    ]);
+    ]
+  );
 
-    await message.reply({
+  await message.reply({
   content: warnings.map(w => "`" + w.id + "`").join("\n"),
   embeds: [embed]
 }).catch(() => null);
 
 return true;
+}
 
   if (command === "warnings") {
     const member =
@@ -922,7 +927,7 @@ return true;
         `${prefix}ban @user reason`,
         `${prefix}unban userId reason`,
         `${prefix}role @user role`,
-        `${prefix}auction start item price time`
+        `${prefix}auction start item price time`,
         `${prefix}bid amount`,
         `${prefix}auction status`,
         `${prefix}auction end`,
