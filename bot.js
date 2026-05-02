@@ -82,10 +82,7 @@ function defaultGuildConfig() {
 function ensureGuildConfig(guildId) {
   if (!guildStore[guildId]) {
   guildStore[guildId] = defaultGuildConfig();
-
-  // apply legacy ONLY once
-  guildStore[guildId].words = [...legacyWords];
-
+  guildStore[guildId].words = [...legacyWords]; // only first setup
   saveGuildStore(guildStore);
 }
 
