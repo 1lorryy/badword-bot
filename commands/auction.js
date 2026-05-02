@@ -111,18 +111,19 @@ async function finishAuction(cancelled = false) {
   }
 
   return auction.channel.send({
-  content: `🏆 <@${auction.highestBidder}> won the auction!`,
-  embeds: [
-    new EmbedBuilder()
-      .setTitle("🏆 Auction Ended")
-      .setColor(0x22c55e)
-      .addFields(
-        { name: "Item", value: auction.item, inline: false },
-        { name: "Winning Bid", value: String(auction.highestBid), inline: true }
-      )
-      .setTimestamp()
-  ]
-});
+    content: `🏆 <@${auction.highestBidder}> won the auction!`,
+    embeds: [
+      new EmbedBuilder()
+        .setTitle("🏆 Auction Ended")
+        .setColor(0x22c55e)
+        .addFields(
+          { name: "Item", value: auction.item, inline: false },
+          { name: "Winning Bid", value: String(auction.highestBid), inline: true }
+        )
+        .setTimestamp()
+    ]
+  });
+}
 
 async function handleAuctionCommand(message, args, prefix) {
   const sub = args.shift()?.toLowerCase();
@@ -172,19 +173,20 @@ async function handleAuctionCommand(message, args, prefix) {
     };
 
     await message.channel.send({
-  content: `💰 <@${message.author.id}> is now the highest bidder!`,
-  embeds: [
-    new EmbedBuilder()
-      .setTitle("💰 New Highest Bid")
-      .setColor(0x22c55e)
-      .addFields(
-        { name: "Item", value: activeAuction.item, inline: false },
-        { name: "Bid", value: String(amount), inline: true },
-        { name: "Time Left (+30s)", value: formatTime(activeAuction.endsAt - Date.now()), inline: true }
-      )
-      .setTimestamp()
-  ]
-});
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("🏁 Auction Started")
+          .setColor(0x5865f2)
+          .addFields(
+            { name: "Item", value: item, inline: false },
+            { name: "Starting Price", value: String(startPrice), inline: true },
+            { name: "Time", value: timeInput, inline: true },
+            { name: "Anti-Snipe", value: "+30s added after every bid", inline: true },
+            { name: "Bid Command", value: `${prefix}bid amount`, inline: false }
+          )
+          .setTimestamp()
+      ]
+    });
 
     resetAuctionTimer();
     return true;
@@ -220,6 +222,7 @@ async function handleAuctionCommand(message, args, prefix) {
     resetAuctionTimer();
 
     await message.channel.send({
+      content: `💰 <@${message.author.id}> is now the highest bidder!`,
       embeds: [
         new EmbedBuilder()
           .setTitle("💰 New Highest Bid")
@@ -227,9 +230,7 @@ async function handleAuctionCommand(message, args, prefix) {
           .addFields(
             { name: "Item", value: activeAuction.item, inline: false },
             { name: "Bid", value: String(amount), inline: true },
-            { name: "Bidder", value: `<@${message.author.id}>`, inline: true },
-            { name: "Anti-Snipe", value: "+30s added", inline: true },
-            { name: "Time Left", value: formatTime(activeAuction.endsAt - Date.now()), inline: true }
+            { name: "Time Left (+30s)", value: formatTime(activeAuction.endsAt - Date.now()), inline: true }
           )
           .setTimestamp()
       ]
