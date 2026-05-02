@@ -629,7 +629,7 @@ if (command === "bid") {
 
     await sendUserDM(member.user, dmEmbed);
 await sendModActionEmbed(channelEmbed);
-await sendTempReply(message, `✅ Warned ${member.user.tag}.`);
+await message.reply(`✅ Warned ${member.user.tag}.\nWarn ID: \`${warning.id}\``).catch(() => null);
 return true;
   }
 
@@ -656,9 +656,12 @@ return true;
       { name: "Moderator", value: `${message.author.tag}`, inline: true }
     ]);
 
-    await sendEmbedReply(message, embed);
-    return true;
-  }
+    await message.reply({
+  content: warnings.map(w => "`" + w.id + "`").join("\n"),
+  embeds: [embed]
+}).catch(() => null);
+
+return true;
 
   if (command === "warnings") {
     const member =
