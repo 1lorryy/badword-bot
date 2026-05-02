@@ -87,7 +87,7 @@ function ensureGuildConfig(guildId) {
 
   const cfg = guildStore[guildId];
 
-  if (!Array.isArray(cfg.words)) cfg.words = [...legacyWords];
+  if (!Array.isArray(cfg.words)) cfg.words = [];
   if (!Array.isArray(cfg.blockedDomains)) cfg.blockedDomains = [...DEFAULT_BLOCKED_DOMAINS];
   if (typeof cfg.prefix !== "string" || !cfg.prefix.trim()) cfg.prefix = DEFAULT_PREFIX;
   if (typeof cfg.blockDiscordInvites !== "boolean") cfg.blockDiscordInvites = true;
