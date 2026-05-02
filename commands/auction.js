@@ -41,6 +41,7 @@ function formatTime(ms) {
   const total = Math.max(0, Math.floor(ms / 1000));
   const min = Math.floor(total / 60);
   const sec = total % 60;
+
   if (min > 0) return `${min}m ${sec}s`;
   return `${sec}s`;
 }
@@ -128,7 +129,7 @@ async function handleAuctionCommand(message, args, prefix) {
   const sub = args.shift()?.toLowerCase();
 
   if (!sub) {
-    await message.reply(`Usage: ${prefix}auction start item | price | time`);
+    await message.reply(`Usage: ${prefix}auction start item price time`);
     return true;
   }
 
@@ -145,27 +146,20 @@ async function handleAuctionCommand(message, args, prefix) {
       return true;
     }
 
-    const parts = args.join(" ").split("|").map(x => x.trim());
-
     if (args.length < 3) {
-  await message.reply(`Usage: ${prefix}auction start item price time`);
-  return true;
-}
+      await message.reply(`Usage: ${prefix}auction start item price time`);
+      return true;
+    }
 
-const timeInput = args[args.length - 1];
-const priceInput = args[args.length - 2];
-const item = args.slice(0, -2).join(" ");
+    const timeInput = args[args.length - 1];
+    const priceInput = args[args.length - 2];
+    const item = args.slice(0, -2).join(" ");
 
-const startPrice = parseInt(priceInput, 10);
-const timeMs = parseTime(timeInput);
-
-if (!item || isNaN(startPrice) || !timeMs) {
-  await message.reply(`Example: ${prefix}auction start Nitro 100 10min`);
-  return true;
-}
+    const startPrice = parseInt(priceInput, 10);
+    const timeMs = parseTime(timeInput);
 
     if (!item || isNaN(startPrice) || !timeMs) {
-      await message.reply(`Example: ${prefix}auction start Nitro | 100 | 10min`);
+      await message.reply(`Example: ${prefix}auction start Nitro 100 10min`);
       return true;
     }
 
@@ -186,7 +180,7 @@ if (!item || isNaN(startPrice) || !timeMs) {
           .addFields(
             { name: "Item", value: item, inline: false },
             { name: "Starting Price", value: String(startPrice), inline: true },
-            { name: "Time", value: parts[2], inline: true },
+            { name: "Time", value: timeInput, inline: true },
             { name: "Anti-Snipe", value: "+30s added after every bid", inline: true },
             { name: "Bid Command", value: `${prefix}bid amount`, inline: false }
           )

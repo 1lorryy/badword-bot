@@ -919,7 +919,7 @@ return true;
         `${prefix}ban @user reason`,
         `${prefix}unban userId reason`,
         `${prefix}role @user role`,
-        `${prefix}auction start item | price | time`,
+        `${prefix}auction start item price time`
         `${prefix}bid amount`,
         `${prefix}auction status`,
         `${prefix}auction end`,
