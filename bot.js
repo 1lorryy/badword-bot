@@ -622,7 +622,7 @@ if (command === "bid") {
       { name: "Moderator", value: `${message.author.tag}`, inline: true },
       { name: "Reason", value: reason, inline: false },
       { name: "Warnings", value: String(total), inline: true },
-      { name: "Warn ID", value: warning.id, inline: true }
+      { name: "Warn ID", value: `\`${warning.id}\``, inline: true }
     ]);
 
     const dmEmbed = makeDMEmbed("⚠️ You were warned", 0xf59e0b, message.guild.name, reason);
@@ -679,7 +679,7 @@ return true;
 
     const list = warnings
       .slice(-10)
-      .map((w, i) => `${i + 1}. ID: ${w.id}\nReason: ${w.reason}`)
+      .map((w, i) => `${i + 1}. ID: \`${w.id}\`\nReason: ${w.reason}`)
       .join("\n\n");
 
     const embed = makeModEmbed(`Warnings for ${member.user.tag}`, 0xf59e0b, [
