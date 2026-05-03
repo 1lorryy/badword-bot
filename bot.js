@@ -209,7 +209,7 @@ async function handleCommands(message) {
   }
 
   if (command === "setprefix") {
-    if (!canBanUsers(message)) return message.reply("❌ Only admin+ can ban.");
+    if (!canBanUsers(message)) return message.reply("❌ Only admin+ can change prefix.");
 
     const newPrefix = args[0];
     if (!newPrefix || newPrefix.length > 3) {
@@ -345,7 +345,7 @@ async function handleCommands(message) {
   }
 
   if (command === "ban") {
-    if (!canManageGuild(message)) return message.reply("No permission.");
+  if (!canBanUsers(message)) return message.reply("❌ Only admin+ can ban.");
 
     if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.BanMembers)) {
       return message.reply("I need Ban Members permission.");
@@ -441,7 +441,7 @@ async function handleCommands(message) {
     return message.reply(`✅ Added **${role.name}** to ${member.user.tag}`);
   }
 
-    // ================= BLACKLIST ADD =================
+      // ================= BLACKLIST ADD =================
   if (command === "bl" || command === "blacklist") {
     if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
@@ -449,26 +449,30 @@ async function handleCommands(message) {
     if (!word) return message.reply(`Usage: \`${prefix}bl word\``);
 
     if (data.words.includes(word)) {
-      return message.reply(`⚠️ \`${word}\` is already blacklisted.`);
+      const reply = await message.reply(`⚠️ \`${word}\` is already blacklisted.`);
+      await deleteAfter(reply);
+      await deleteAfter(message);
+      return true;
     }
 
     data.words.push(word);
     saveData();
 
     const reply = await message.reply({
-  embeds: [
-    new EmbedBuilder()
-      .setTitle("🚫 Word Blacklisted")
-      .setColor(0xef4444)
-      .setDescription(`Added \`${word}\` to the blacklist.`)
-      .setFooter({ text: "AutoMod updated" })
-      .setTimestamp()
-  ]
-}).catch(() => null);
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("🚫 Word Blacklisted")
+          .setColor(0xef4444)
+          .setDescription(`Added \`${word}\` to the blacklist.`)
+          .setFooter({ text: "AutoMod updated" })
+          .setTimestamp()
+      ]
+    }).catch(() => null);
 
-await deleteAfter(reply);
-await deleteAfter(message);
-return true;
+    await deleteAfter(reply);
+    await deleteAfter(message);
+    return true;
+  }
 
   // ================= BLACKLIST REMOVE =================
   if (command === "unbl" || command === "unblacklist") {
@@ -482,23 +486,27 @@ return true;
     saveData();
 
     if (before === data.words.length) {
-      return message.reply(`⚠️ \`${word}\` was not found in blacklist.`);
+      const reply = await message.reply(`⚠️ \`${word}\` was not found in blacklist.`);
+      await deleteAfter(reply);
+      await deleteAfter(message);
+      return true;
     }
 
     const reply = await message.reply({
-  embeds: [
-    new EmbedBuilder()
-      .setTitle("✅ Word Removed")
-      .setColor(0x22c55e)
-      .setDescription(`Removed \`${word}\` from the blacklist.`)
-      .setFooter({ text: "AutoMod updated" })
-      .setTimestamp()
-  ]
-}).catch(() => null);
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("✅ Word Removed")
+          .setColor(0x22c55e)
+          .setDescription(`Removed \`${word}\` from the blacklist.`)
+          .setFooter({ text: "AutoMod updated" })
+          .setTimestamp()
+      ]
+    }).catch(() => null);
 
-await deleteAfter(reply);
-await deleteAfter(message);
-return true;
+    await deleteAfter(reply);
+    await deleteAfter(message);
+    return true;
+  }
 
   // ================= BLACKLIST WORDS =================
   if (command === "words") {
