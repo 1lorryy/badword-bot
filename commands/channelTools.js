@@ -114,30 +114,35 @@ async function handleChannelToolsCommand(message, args, prefix, command, canMana
 
   // ================= LOCK =================
   if (command === "lock") {
-    // ❌ DENY EVERYONE (THIS IS KEY)
-    await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-      SendMessages: false,
-      SendMessagesInThreads: false,
-      CreatePublicThreads: false,
-      CreatePrivateThreads: false
+  const channel = getTargetChannel(message, args);
+
+  // 🔥 REMOVE ALL overwrites first (important)
+  await channel.permissionOverwrites.set([]);
+
+  // ❌ DENY everyone
+  await channel.permissionOverwrites.create(message.guild.roles.everyone, {
+    SendMessages: false,
+    SendMessagesInThreads: false,
+    CreatePublicThreads: false,
+    CreatePrivateThreads: false
+  });
+
+  // ✅ allow ONLY staff
+  const allowRoles = [STAFF_ROLE_ID, MOD_ROLE_ID, ADMIN_ROLE_ID];
+
+  for (const roleId of allowRoles) {
+    const role = message.guild.roles.cache.get(roleId);
+    if (!role) continue;
+
+    await channel.permissionOverwrites.create(role, {
+      SendMessages: true,
+      SendMessagesInThreads: true
     });
-
-    // ✅ ALLOW ONLY STAFF
-    const allowRoles = [STAFF_ROLE_ID, MOD_ROLE_ID, ADMIN_ROLE_ID];
-
-    for (const roleId of allowRoles) {
-      const role = message.guild.roles.cache.get(roleId);
-      if (!role) continue;
-
-      await channel.permissionOverwrites.edit(role, {
-        SendMessages: true,
-        SendMessagesInThreads: true
-      });
-    }
-
-    await sendSmallEmbed(message, 0xef4444, `🔒 Locked ${channel}`);
-    return true;
   }
+
+  await sendSmallEmbed(message, 0xef4444, `🔒 Locked ${channel}`);
+  return true;
+}
 
   // ================= UNLOCK =================
   if (command === "unlock") {
