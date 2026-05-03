@@ -68,20 +68,28 @@ async function handleAfkMentionsAndReturn(message, prefix) {
       : "NOBODY PINGED U - CRY ABOUT IT";
 
     await message.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("👋 Welcome Back")
-          .setColor(0x22c55e)
-          .setDescription(`${message.member.displayName}, I removed your AFK.`)
-          .addFields(
-            { name: "AFK Time", value: awayFor, inline: true },
-            { name: "Reason", value: authorAfk.reason, inline: true },
-            { name: "Pings While AFK", value: pingList, inline: false }
-          )
-          .setTimestamp()
-      ],
-      allowedMentions: { parse: [] }
-    }).catch(() => null);
+  embeds: [
+    new EmbedBuilder()
+      .setColor(0x22c55e)
+      .setAuthor({
+        name: `${message.member.displayName} is back`,
+        iconURL: message.author.displayAvatarURL()
+      })
+      .setDescription(
+        `<@${message.author.id}> welcome back!\n` +
+        `⏱️ **AFK:** ${awayFor}\n` +
+        `💬 **Reason:** ${authorAfk.reason}`
+      )
+      .addFields(
+        {
+          name: "📬 Mentions",
+          value: pingList.length ? pingList : "NO ONE PINGED U - CRY ABOUT IT",
+        }
+      )
+      .setTimestamp()
+  ],
+  allowedMentions: { users: [] } // no ping
+}).catch(() => null);
   }
 
   for (const user of message.mentions.users.values()) {
@@ -103,9 +111,9 @@ async function handleAfkMentionsAndReturn(message, prefix) {
 
     // This one will NOT ping the AFK person.
     await message.reply({
-      content: `${displayName} is AFK for ${awayFor} - ${data.reason}`,
-      allowedMentions: { parse: [] }
-    }).catch(() => null);
+  content: `<@${user.id}> is AFK for ${awayFor} - ${data.reason}`,
+  allowedMentions: { users: [] } // no ping
+}).catch(() => null);
   }
 }
 
