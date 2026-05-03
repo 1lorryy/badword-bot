@@ -1,12 +1,13 @@
+const { PermissionsBitField, EmbedBuilder } = require("discord.js");
+
 const MEMBER_ROLE_ID = "1481564058984517762";
 const STAFF_ROLE_ID = "1481370041420087474";
 const MOD_ROLE_ID = "1481370041432932379";
 const ADMIN_ROLE_ID = "1481370041441189959";
 
-const { PermissionsBitField, EmbedBuilder } = require("discord.js");
-
 const DELETE_AFTER_MS = 5000;
 
+// ===== TIME PARSER =====
 function parseTime(input) {
   if (!input) return null;
 
@@ -23,6 +24,7 @@ function parseTime(input) {
   return null;
 }
 
+// ===== CHANNEL FINDER =====
 function getTargetChannel(message, args) {
   const mentioned = message.mentions.channels.first();
   if (mentioned) return mentioned;
@@ -34,11 +36,10 @@ function getTargetChannel(message, args) {
   return message.channel;
 }
 
+// ===== CLEANING =====
 async function deleteLater(msg, ms = DELETE_AFTER_MS) {
   if (!msg) return;
-  setTimeout(() => {
-    msg.delete().catch(() => null);
-  }, ms);
+  setTimeout(() => msg.delete().catch(() => null), ms);
 }
 
 async function cleanCommandMessage(message) {
@@ -57,24 +58,26 @@ async function sendSmallEmbed(message, color, text) {
   await deleteLater(sent);
 }
 
+// ===== MAIN HANDLER =====
 async function handleChannelToolsCommand(message, args, prefix, command, canManageGuild) {
   await cleanCommandMessage(message);
 
   if (!canManageGuild(message)) {
-    const reply = await message.channel.send("❌ You do not have permission.").catch(() => null);
+    const reply = await message.channel.send("❌ No permission").catch(() => null);
     await deleteLater(reply);
     return true;
   }
 
   if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
-    const reply = await message.channel.send("❌ I need Manage Channels permission.").catch(() => null);
+    const reply = await message.channel.send("❌ I need Manage Channels").catch(() => null);
     await deleteLater(reply);
     return true;
   }
 
-  if (command === "slowmode") {
-    const channel = getTargetChannel(message, args);
+  const channel = getTargetChannel(message, args);
 
+  // ================= SLOWMODE =================
+  if (command === "slowmode") {
     let timeArg = args[0];
 
     if (
@@ -90,91 +93,77 @@ async function handleChannelToolsCommand(message, args, prefix, command, canMana
       return true;
     }
 
-    if (["off", "disable", "0", "none"].includes(timeArg.toLowerCase())) {
-      await channel.setRateLimitPerUser(0, `Slowmode disabled by ${message.author.tag}`);
-      await sendSmallEmbed(message, 0x22c55e, `✅ Slowmode: ${channel} → **off**`);
+    if (["off", "0"].includes(timeArg.toLowerCase())) {
+      await channel.setRateLimitPerUser(0);
+      await sendSmallEmbed(message, 0x22c55e, `✅ Slowmode OFF → ${channel}`);
       return true;
     }
 
     const seconds = parseTime(timeArg);
 
-    if (seconds === null || seconds < 0 || seconds > 21600) {
-      const reply = await message.channel.send("❌ Use time like `5s`, `10min`, `1h`. Max is 6h.").catch(() => null);
+    if (seconds === null || seconds > 21600) {
+      const reply = await message.channel.send("❌ Max 6h").catch(() => null);
       await deleteLater(reply);
       return true;
     }
 
-    await channel.setRateLimitPerUser(seconds, `Slowmode set by ${message.author.tag}`);
-    await sendSmallEmbed(message, 0x5865f2, `🐢 Slowmode: ${channel} → **${timeArg}**`);
+    await channel.setRateLimitPerUser(seconds);
+    await sendSmallEmbed(message, 0x5865f2, `🐢 Slowmode ${timeArg} → ${channel}`);
     return true;
   }
 
-  const STAFF_ROLE_ID = "1481370041420087474";
-const MOD_ROLE_ID = "1481370041432932379";
-const ADMIN_ROLE_ID = "1481370041441189959";
-
-if (command === "lock") {
-  const channel = getTargetChannel(message, args);
-
-  const denyRoles = [
-    message.guild.roles.everyone.id,
-    MEMBER_ROLE_ID
-  ];
-
-  for (const roleId of denyRoles) {
-    const role = message.guild.roles.cache.get(roleId);
-    if (!role) continue;
-
-    await channel.permissionOverwrites.edit(role, {
+  // ================= LOCK =================
+  if (command === "lock") {
+    // ❌ DENY EVERYONE (THIS IS KEY)
+    await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
       SendMessages: false,
       SendMessagesInThreads: false,
       CreatePublicThreads: false,
       CreatePrivateThreads: false
     });
+
+    // ✅ ALLOW ONLY STAFF
+    const allowRoles = [STAFF_ROLE_ID, MOD_ROLE_ID, ADMIN_ROLE_ID];
+
+    for (const roleId of allowRoles) {
+      const role = message.guild.roles.cache.get(roleId);
+      if (!role) continue;
+
+      await channel.permissionOverwrites.edit(role, {
+        SendMessages: true,
+        SendMessagesInThreads: true
+      });
+    }
+
+    await sendSmallEmbed(message, 0xef4444, `🔒 Locked ${channel}`);
+    return true;
   }
 
-  const allowRoles = [STAFF_ROLE_ID, MOD_ROLE_ID, ADMIN_ROLE_ID];
-
-  for (const roleId of allowRoles) {
-    const role = message.guild.roles.cache.get(roleId);
-    if (!role) continue;
-
-    await channel.permissionOverwrites.edit(role, {
-      SendMessages: true,
-      SendMessagesInThreads: true
-    });
-  }
-
-  await sendSmallEmbed(message, 0xef4444, `🔒 ${channel} locked`);
-  return true;
-}
-
+  // ================= UNLOCK =================
   if (command === "unlock") {
-  const channel = getTargetChannel(message, args);
+    const roles = [
+      message.guild.roles.everyone.id,
+      STAFF_ROLE_ID,
+      MOD_ROLE_ID,
+      ADMIN_ROLE_ID,
+      MEMBER_ROLE_ID
+    ];
 
-  const resetRoles = [
-    message.guild.roles.everyone.id,
-    MEMBER_ROLE_ID,
-    STAFF_ROLE_ID,
-    MOD_ROLE_ID,
-    ADMIN_ROLE_ID
-  ];
+    for (const roleId of roles) {
+      const role = message.guild.roles.cache.get(roleId);
+      if (!role) continue;
 
-  for (const roleId of resetRoles) {
-    const role = message.guild.roles.cache.get(roleId);
-    if (!role) continue;
+      await channel.permissionOverwrites.edit(role, {
+        SendMessages: null,
+        SendMessagesInThreads: null,
+        CreatePublicThreads: null,
+        CreatePrivateThreads: null
+      });
+    }
 
-    await channel.permissionOverwrites.edit(role, {
-      SendMessages: null,
-      SendMessagesInThreads: null,
-      CreatePublicThreads: null,
-      CreatePrivateThreads: null
-    });
+    await sendSmallEmbed(message, 0x22c55e, `🔓 Unlocked ${channel}`);
+    return true;
   }
-
-  await sendSmallEmbed(message, 0x22c55e, `🔓 ${channel} unlocked`);
-  return true;
-}
 
   return false;
 }
