@@ -1,6 +1,4 @@
-if (command === "bid") {
-  return await handleAuctionCommand(message, ["bid", ...args], prefix);
-}
+
 const { handleAfkCommand, handleAfkMentionsAndReturn } = require("./commands/afk");
 const { handleAuctionCommand } = require("./commands/auction");
 
@@ -471,8 +469,9 @@ async function handlePrefixCommand(message, cfg) {
   }
 
   if (command === "bid") {
-    return await handleAuctionCommand(message, ["bid", ...args], prefix);
-  }
+  return await handleAuctionCommand(message, ["bid", ...args], prefix);
+}
+
 if (["slowmode", "lock", "unlock"].includes(command)) {
   return await handleChannelToolsCommand(message, args, prefix, command, canManageGuild);
 }
