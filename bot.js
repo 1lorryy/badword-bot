@@ -115,30 +115,74 @@ async function handleCommands(message) {
 
   // ===== HELP =====
   if (command === "help") {
-    const embed = new EmbedBuilder()
-      .setTitle("🔥 Commands")
-      .setColor(0x5865f2)
-      .addFields(
-        {
-          name: "🛡️ Moderation",
-          value: `\`${prefix}warn\`\n\`${prefix}mute\`\n\`${prefix}ban\``
-        },
-        {
-          name: "🏆 Auction",
-          value: `\`${prefix}auction start\`\n\`${prefix}bid\``
-        },
-        {
-          name: "🔒 Channels",
-          value: `\`${prefix}lock\`\n\`${prefix}unlock\`\n\`${prefix}slowmode\``
-        },
-        {
-          name: "💤 Utility",
-          value: `\`${prefix}afk\`\n\`${prefix}ping\``
-        }
-      );
+  const embed = new EmbedBuilder()
+    .setTitle("🔥 Commands")
+    .setColor(0x5865f2)
+    .setDescription(`Prefix: \`${prefix}\``)
+    .addFields(
+      {
+        name: "🛡️ Moderation",
+        value: [
+          `\`${prefix}warn\``,
+          `\`${prefix}mute\``,
+          `\`${prefix}ban\``,
+          `\`${prefix}warnings\``,
+          `\`${prefix}unwarn\``,
+          `\`${prefix}unmute\``,
+          `\`${prefix}unban\``
+        ].join(" • "),
+        inline: false
+      },
+      {
+        name: "⚙️ Server",
+        value: [
+          `\`${prefix}setprefix\``,
+          `\`${prefix}setnick\``,
+          `\`${prefix}role\``
+        ].join(" • "),
+        inline: false
+      },
+      {
+        name: "🚫 AutoMod",
+        value: [
+          `\`${prefix}words\``,
+          `\`${prefix}bl\``,
+          `\`${prefix}unbl\``
+        ].join(" • "),
+        inline: false
+      },
+      {
+        name: "🏆 Auction",
+        value: [
+          `\`${prefix}auction start\``,
+          `\`${prefix}bid\``,
+          `\`${prefix}auction end\``
+        ].join(" • "),
+        inline: false
+      },
+      {
+        name: "🔒 Channels",
+        value: [
+          `\`${prefix}lock\``,
+          `\`${prefix}unlock\``,
+          `\`${prefix}slowmode\``
+        ].join(" • "),
+        inline: false
+      },
+      {
+        name: "💤 Utility",
+        value: [
+          `\`${prefix}afk\``,
+          `\`${prefix}ping\``
+        ].join(" • "),
+        inline: false
+      }
+    )
+    .setFooter({ text: "🔥 Dashboard Bot" });
 
-    return message.reply({ embeds: [embed] });
-  }
+  await message.reply({ embeds: [embed] }).catch(() => null);
+  return true;
+}
 
   // ===== PING =====
   if (command === "ping") {
