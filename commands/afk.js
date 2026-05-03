@@ -37,7 +37,11 @@ async function handleAfkCommand(message, args, prefix) {
     await member.setNickname(newNick, "User went AFK").catch(() => null);
   }
 
-  await message.reply(`${message.author} is now AFK - ${reason}`).catch(() => null);
+  await message.reply({
+    content: `${message.member.displayName} is now AFK - ${reason}`,
+    allowedMentions: { parse: [] }
+  }).catch(() => null);
+
   return true;
 }
 
@@ -70,14 +74,15 @@ async function handleAfkMentionsAndReturn(message, prefix) {
         new EmbedBuilder()
           .setTitle("👋 Welcome Back")
           .setColor(0x22c55e)
-          .setDescription(`${message.author}, I removed your AFK.`)
+          .setDescription(`${message.member.displayName}, I removed your AFK.`)
           .addFields(
             { name: "AFK Time", value: awayFor, inline: true },
             { name: "Reason", value: authorAfk.reason, inline: true },
             { name: "Pings While AFK", value: pingList, inline: false }
           )
           .setTimestamp()
-      ]
+      ],
+      allowedMentions: { parse: [] }
     }).catch(() => null);
   }
 
@@ -96,14 +101,16 @@ async function handleAfkMentionsAndReturn(message, prefix) {
     if (data.pings.length > 10) data.pings.shift();
 
     const member = message.guild.members.cache.get(user.id);
-const displayName = member ? member.displayName : user.username;
+    const displayName = member ? member.displayName : user.username;
 
-await message.reply({
-  content: `${displayName} is AFK for ${awayFor} - ${data.reason}`,
-  allowedMentions: { parse: [] }
-}).catch(() => null);
+    await message.reply({
+      content: `${displayName} is AFK for ${awayFor} - ${data.reason}`,
+      allowedMentions: { parse: [] }
+    }).catch(() => null);
+  }
+}
 
 module.exports = {
   handleAfkCommand,
   handleAfkMentionsAndReturn
-};
+};s
