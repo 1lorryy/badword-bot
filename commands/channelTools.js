@@ -105,30 +105,40 @@ async function handleChannelToolsCommand(message, args, prefix, command, canMana
   }
 
   if (command === "lock") {
-    const channel = getTargetChannel(message, args);
+  const channel = getTargetChannel(message, args);
 
-    await channel.permissionOverwrites.edit(
-      message.guild.roles.everyone,
-      { SendMessages: false },
-      { reason: `Channel locked by ${message.author.tag}` }
-    );
+  await channel.permissionOverwrites.edit(
+    message.guild.roles.everyone,
+    {
+      SendMessages: false,
+      SendMessagesInThreads: false,
+      CreatePublicThreads: false,
+      CreatePrivateThreads: false
+    },
+    { reason: `Channel locked by ${message.author.tag}` }
+  );
 
-    await sendSmallEmbed(message, 0xef4444, `🔒 ${channel} locked`);
-    return true;
-  }
+  await sendSmallEmbed(message, 0xef4444, `🔒 ${channel} locked`);
+  return true;
+}
 
   if (command === "unlock") {
-    const channel = getTargetChannel(message, args);
+  const channel = getTargetChannel(message, args);
 
-    await channel.permissionOverwrites.edit(
-      message.guild.roles.everyone,
-      { SendMessages: null },
-      { reason: `Channel unlocked by ${message.author.tag}` }
-    );
+  await channel.permissionOverwrites.edit(
+    message.guild.roles.everyone,
+    {
+      SendMessages: null,
+      SendMessagesInThreads: null,
+      CreatePublicThreads: null,
+      CreatePrivateThreads: null
+    },
+    { reason: `Channel unlocked by ${message.author.tag}` }
+  );
 
-    await sendSmallEmbed(message, 0x22c55e, `🔓 ${channel} unlocked`);
-    return true;
-  }
+  await sendSmallEmbed(message, 0x22c55e, `🔓 ${channel} unlocked`);
+  return true;
+}
 
   return false;
 }
