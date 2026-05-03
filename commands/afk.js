@@ -95,12 +95,13 @@ async function handleAfkMentionsAndReturn(message, prefix) {
 
     if (data.pings.length > 10) data.pings.shift();
 
-    await message.reply({
-  content: `@${user.username} is AFK for ${awayFor} - ${data.reason}`,
+    const member = message.guild.members.cache.get(user.id);
+const displayName = member ? member.displayName : user.username;
+
+await message.reply({
+  content: `${displayName} is AFK for ${awayFor} - ${data.reason}`,
   allowedMentions: { parse: [] }
 }).catch(() => null);
-  }
-}
 
 module.exports = {
   handleAfkCommand,
