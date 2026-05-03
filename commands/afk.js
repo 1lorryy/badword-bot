@@ -38,7 +38,7 @@ async function handleAfkCommand(message, args, prefix) {
   }
 
   await message.reply({
-    content: `${message.member.displayName} is now AFK - ${reason}`,
+    content: `${member.displayName} is now AFK - ${reason}`,
     allowedMentions: { parse: [] }
   }).catch(() => null);
 
@@ -113,4 +113,4 @@ async function handleAfkMentionsAndReturn(message, prefix) {
 module.exports = {
   handleAfkCommand,
   handleAfkMentionsAndReturn
-};s
+};
