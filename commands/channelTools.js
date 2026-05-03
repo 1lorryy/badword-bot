@@ -104,37 +104,65 @@ async function handleChannelToolsCommand(message, args, prefix, command, canMana
     return true;
   }
 
-  if (command === "lock") {
+  const STAFF_ROLE_ID = "1481370041420087474";
+const MOD_ROLE_ID = "1481370041432932379";
+const ADMIN_ROLE_ID = "1481370041441189959";
+
+if (command === "lock") {
   const channel = getTargetChannel(message, args);
 
+  // deny everyone
   await channel.permissionOverwrites.edit(
     message.guild.roles.everyone,
     {
       SendMessages: false,
-      SendMessagesInThreads: false,
-      CreatePublicThreads: false,
-      CreatePrivateThreads: false
+      SendMessagesInThreads: false
     },
     { reason: `Channel locked by ${message.author.tag}` }
   );
 
-  await sendSmallEmbed(message, 0xef4444, `🔒 ${channel} locked`);
+  // allow staff roles
+  const staffRoles = [STAFF_ROLE_ID, MOD_ROLE_ID, ADMIN_ROLE_ID];
+
+  for (const roleId of staffRoles) {
+    const role = message.guild.roles.cache.get(roleId);
+    if (!role) continue;
+
+    await channel.permissionOverwrites.edit(role, {
+      SendMessages: true,
+      SendMessagesInThreads: true
+    });
+  }
+
+  await sendSmallEmbed(message, 0xef4444, `🔒 ${channel} locked (staff can still talk)`);
   return true;
 }
 
   if (command === "unlock") {
   const channel = getTargetChannel(message, args);
 
+  // reset everyone
   await channel.permissionOverwrites.edit(
     message.guild.roles.everyone,
     {
       SendMessages: null,
-      SendMessagesInThreads: null,
-      CreatePublicThreads: null,
-      CreatePrivateThreads: null
+      SendMessagesInThreads: null
     },
     { reason: `Channel unlocked by ${message.author.tag}` }
   );
+
+  // reset staff roles too
+  const staffRoles = [STAFF_ROLE_ID, MOD_ROLE_ID, ADMIN_ROLE_ID];
+
+  for (const roleId of staffRoles) {
+    const role = message.guild.roles.cache.get(roleId);
+    if (!role) continue;
+
+    await channel.permissionOverwrites.edit(role, {
+      SendMessages: null,
+      SendMessagesInThreads: null
+    });
+  }
 
   await sendSmallEmbed(message, 0x22c55e, `🔓 ${channel} unlocked`);
   return true;
