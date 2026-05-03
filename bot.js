@@ -1,3 +1,6 @@
+if (command === "bid") {
+  return await handleAuctionCommand(message, ["bid", ...args], prefix);
+}
 const { handleAfkCommand, handleAfkMentionsAndReturn } = require("./commands/afk");
 const { handleAuctionCommand } = require("./commands/auction");
 
@@ -470,6 +473,9 @@ async function handlePrefixCommand(message, cfg) {
   if (command === "bid") {
     return await handleAuctionCommand(message, ["bid", ...args], prefix);
   }
+if (["slowmode", "lock", "unlock"].includes(command)) {
+  return await handleChannelToolsCommand(message, args, prefix, command, canManageGuild);
+}
 
   if (command === "ping") {
     const sent = await message.reply("🏓 Pinging...").catch(() => null);
@@ -959,7 +965,17 @@ async function handlePrefixCommand(message, cfg) {
           `\`${prefix}prefix\``
         ].join("\n"),
         inline: false
-      }
+      },
+{
+  name: "🔒 Channel Tools",
+  value: [
+    `\`${prefix}slowmode #channel 10s\``,
+    `\`${prefix}slowmode #channel off\``,
+    `\`${prefix}lock #channel reason\``,
+    `\`${prefix}unlock #channel\``
+  ].join("\n"),
+  inline: false
+     }
     )
     .setFooter({ text: "🔥 DASHBOARD Bot" })
     .setTimestamp();
