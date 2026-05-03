@@ -1,3 +1,8 @@
+const MEMBER_ROLE_ID = "1481564058984517762";
+const STAFF_ROLE_ID = "1481370041420087474";
+const MOD_ROLE_ID = "1481370041432932379";
+const ADMIN_ROLE_ID = "1481370041441189959";
+
 const { PermissionsBitField, EmbedBuilder } = require("discord.js");
 
 const DELETE_AFTER_MS = 5000;
@@ -111,20 +116,26 @@ const ADMIN_ROLE_ID = "1481370041441189959";
 if (command === "lock") {
   const channel = getTargetChannel(message, args);
 
-  // deny everyone
-  await channel.permissionOverwrites.edit(
-    message.guild.roles.everyone,
-    {
+  const denyRoles = [
+    message.guild.roles.everyone.id,
+    MEMBER_ROLE_ID
+  ];
+
+  for (const roleId of denyRoles) {
+    const role = message.guild.roles.cache.get(roleId);
+    if (!role) continue;
+
+    await channel.permissionOverwrites.edit(role, {
       SendMessages: false,
-      SendMessagesInThreads: false
-    },
-    { reason: `Channel locked by ${message.author.tag}` }
-  );
+      SendMessagesInThreads: false,
+      CreatePublicThreads: false,
+      CreatePrivateThreads: false
+    });
+  }
 
-  // allow staff roles
-  const staffRoles = [STAFF_ROLE_ID, MOD_ROLE_ID, ADMIN_ROLE_ID];
+  const allowRoles = [STAFF_ROLE_ID, MOD_ROLE_ID, ADMIN_ROLE_ID];
 
-  for (const roleId of staffRoles) {
+  for (const roleId of allowRoles) {
     const role = message.guild.roles.cache.get(roleId);
     if (!role) continue;
 
@@ -134,33 +145,30 @@ if (command === "lock") {
     });
   }
 
-  await sendSmallEmbed(message, 0xef4444, `🔒 ${channel} locked (staff can still talk)`);
+  await sendSmallEmbed(message, 0xef4444, `🔒 ${channel} locked`);
   return true;
 }
 
   if (command === "unlock") {
   const channel = getTargetChannel(message, args);
 
-  // reset everyone
-  await channel.permissionOverwrites.edit(
-    message.guild.roles.everyone,
-    {
-      SendMessages: null,
-      SendMessagesInThreads: null
-    },
-    { reason: `Channel unlocked by ${message.author.tag}` }
-  );
+  const resetRoles = [
+    message.guild.roles.everyone.id,
+    MEMBER_ROLE_ID,
+    STAFF_ROLE_ID,
+    MOD_ROLE_ID,
+    ADMIN_ROLE_ID
+  ];
 
-  // reset staff roles too
-  const staffRoles = [STAFF_ROLE_ID, MOD_ROLE_ID, ADMIN_ROLE_ID];
-
-  for (const roleId of staffRoles) {
+  for (const roleId of resetRoles) {
     const role = message.guild.roles.cache.get(roleId);
     if (!role) continue;
 
     await channel.permissionOverwrites.edit(role, {
       SendMessages: null,
-      SendMessagesInThreads: null
+      SendMessagesInThreads: null,
+      CreatePublicThreads: null,
+      CreatePrivateThreads: null
     });
   }
 

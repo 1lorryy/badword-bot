@@ -598,32 +598,39 @@ if (["slowmode", "lock", "unlock"].includes(command)) {
     return await handlePurgeCommand(message, args, prefix);
   }
 
-  if (command === "warn") {
-    if (!canManageGuild(message)) {
-      await sendTempReply(message, "You do not have permission.");
-      return true;
-    }
+ if (command === "warn") {
+  if (!canManageGuild(message)) {
+    await sendTempReply(message, "You do not have permission.");
+    return true;
+  }
 
-    const member =
-      message.mentions.members.first() ||
-      await message.guild.members.fetch(args[0]).catch(() => null);
+  const member = await findTargetMember(message, args);
 
-    if (!member) {
-      await sendTempReply(message, `Usage: ${prefix}warn @user reason`);
-      return true;
-    }
+  if (!member) {
+    await sendTempReply(message, `Usage: ${prefix}warn @user reason`);
+    return true;
+  }
 
-    const reason = args.slice(1).join(" ") || "No reason provided";
-    const warning = addWarning(message.guild.id, member.id, message.author.id, reason);
-    const total = getWarnings(message.guild.id, member.id).length;
+  const reason = message.reference
+    ? args.join(" ") || "No reason provided"
+    : args.slice(1).join(" ") || "No reason provided";
 
-    const channelEmbed = makeModEmbed("⚠️ User Warned", 0xf59e0b, [
-      { name: "User", value: `${member.user.tag}`, inline: true },
-      { name: "Moderator", value: `${message.author.tag}`, inline: true },
-      { name: "Reason", value: reason, inline: false },
-      { name: "Warnings", value: String(total), inline: true },
-      { name: "Warn ID", value: `\`${warning.id}\``, inline: true }
-    ]);
+  const warning = addWarning(message.guild.id, member.id, message.author.id, reason);
+  const total = getWarnings(message.guild.id, member.id).length;
+
+  const embed = makeModEmbed("⚠️ User Warned", 0xf59e0b, [
+    { name: "User", value: `${member.user.tag}`, inline: true },
+    { name: "Moderator", value: `${message.author.tag}`, inline: true },
+    { name: "Reason", value: reason, inline: false },
+    { name: "Warnings", value: String(total), inline: true },
+    { name: "Warn ID", value: `\`${warning.id}\``, inline: true }
+  ]);
+
+  await sendModActionEmbed(embed);
+  await message.reply(`✅ Warned ${member.user.tag}\nID: \`${warning.id}\``);
+
+  return true;
+}
 
     const dmEmbed = makeDMEmbed("⚠️ You were warned", 0xf59e0b, message.guild.name, reason);
 
@@ -699,32 +706,36 @@ if (["slowmode", "lock", "unlock"].includes(command)) {
   }
 
   if (command === "mute" || command === "timeout") {
-    if (!canManageGuild(message)) {
-      await sendTempReply(message, "You do not have permission.");
-      return true;
-    }
+  if (!canManageGuild(message)) {
+    await sendTempReply(message, "You do not have permission.");
+    return true;
+  }
 
-    if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.ModerateMembers)) {
-      await sendTempReply(message, "I need Moderate Members permission.");
-      return true;
-    }
+  const member = await findTargetMember(message, args);
 
-    const member =
-      message.mentions.members.first() ||
-      await message.guild.members.fetch(args[0]).catch(() => null);
+  if (!member) {
+    await sendTempReply(message, `Usage: ${prefix}mute @user 1min reason`);
+    return true;
+  }
 
-    if (!member) {
-      await sendTempReply(message, `Usage: ${prefix}mute @user 1min reason`);
-      return true;
-    }
+  const durationText = message.reference ? args[0] : args[1];
+  const durationMs = parseDuration(durationText);
 
-    const durationText = args[1];
-    const durationMs = parseDuration(durationText);
+  if (!durationMs) {
+    await sendTempReply(message, "Use: 10s / 1min / 1h / 1d");
+    return true;
+  }
 
-    if (!durationMs) {
-      await sendTempReply(message, `Use: ${prefix}mute @user 30s / 1min / 30min / 2h / 14d reason`);
-      return true;
-    }
+  const reason = message.reference
+    ? args.slice(1).join(" ") || "No reason provided"
+    : args.slice(2).join(" ") || "No reason provided";
+
+  await member.timeout(durationMs, reason);
+
+  await message.reply(`🔇 Muted ${member.user.tag} for ${durationText}`);
+
+  return true;
+}
 
     const maxMs = 14 * 24 * 60 * 60 * 1000;
     if (durationMs > maxMs) {
@@ -774,26 +785,28 @@ if (["slowmode", "lock", "unlock"].includes(command)) {
   }
 
   if (command === "ban") {
-    if (!canManageGuild(message)) {
-      await sendTempReply(message, "You do not have permission.");
-      return true;
-    }
+  if (!canManageGuild(message)) {
+    await sendTempReply(message, "You do not have permission.");
+    return true;
+  }
 
-    if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-      await sendTempReply(message, "I need Ban Members permission.");
-      return true;
-    }
+  const member = await findTargetMember(message, args);
 
-    const member =
-      message.mentions.members.first() ||
-      await message.guild.members.fetch(args[0]).catch(() => null);
+  if (!member) {
+    await sendTempReply(message, `Usage: ${prefix}ban @user reason`);
+    return true;
+  }
 
-    if (!member) {
-      await sendTempReply(message, `Usage: ${prefix}ban @user reason`);
-      return true;
-    }
+  const reason = message.reference
+    ? args.join(" ") || "No reason provided"
+    : args.slice(1).join(" ") || "No reason provided";
 
-    const reason = args.slice(1).join(" ") || "No reason provided";
+  await member.ban({ reason });
+
+  await message.reply(`🔨 Banned ${member.user.tag}`);
+
+  return true;
+}
 
     const dmEmbed = makeDMEmbed("🔨 You were banned", 0xef4444, message.guild.name, reason);
     await sendUserDM(member.user, dmEmbed);
@@ -912,20 +925,20 @@ if (["slowmode", "lock", "unlock"].includes(command)) {
     .setDescription(`Prefix: \`${prefix}\``)
     .addFields(
       {
-        name: "🛡️ Moderation",
-        value: [
-          `\`${prefix}warn @user reason\``,
-          `\`${prefix}unwarn @user warnId\``,
-          `\`${prefix}warnings @user\``,
-          `\`${prefix}mute @user 1min reason\``,
-          `\`${prefix}unmute @user\``,
-          `\`${prefix}ban @user reason\``,
-          `\`${prefix}unban userId reason\``,
-          `\`${prefix}purge 1\``,
-          `\`${prefix}purge @user 1\``
-        ].join("\n"),
-        inline: false
-      },
+        {
+  name: "🛡️ Moderation",
+  value: [
+    `\`${prefix}warn @user reason\``,
+    `\`${prefix}mute @user 1min reason\``,
+    `\`${prefix}ban @user reason\``,
+    `\`${prefix}unwarn @user warnId\``,
+    `\`${prefix}warnings @user\``,
+    `\`${prefix}unmute @user\``,
+    `\`${prefix}unban userId reason\``,
+    `\`${prefix}purge 1\``
+  ].join("\n"),
+  inline: false
+},
       {
         name: "⚙️ Server",
         value: [
@@ -1049,6 +1062,33 @@ function startBot() {
 
       await handleAfkMentionsAndReturn(message, cfg.prefix);
 
+async function findTargetMember(message, args) {
+  const mention = message.mentions.members.first();
+  if (mention) return mention;
+
+  if (message.reference) {
+    const replied = await message.fetchReference().catch(() => null);
+    if (replied?.author) {
+      const repliedMember = await message.guild.members.fetch(replied.author.id).catch(() => null);
+      if (repliedMember) return repliedMember;
+    }
+  }
+
+  const input = args[0];
+  if (!input) return null;
+
+  const byId = await message.guild.members.fetch(input).catch(() => null);
+  if (byId) return byId;
+
+  const search = input.toLowerCase();
+
+  return message.guild.members.cache.find(member =>
+    member.user.username.toLowerCase() === search ||
+    member.displayName.toLowerCase() === search ||
+    member.user.tag.toLowerCase() === search
+  ) || null;
+}
+      
       const handledCommand = await handlePrefixCommand(message, cfg);
       if (handledCommand) return;
 
