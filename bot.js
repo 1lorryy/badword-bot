@@ -4,6 +4,7 @@ const { handleAuctionCommand } = require("./commands/auction");
 
 const fs = require("fs");
 const path = require("path");
+
 const {
   Client,
   GatewayIntentBits,
@@ -32,12 +33,9 @@ const BLOCKED_LINKS = [
   "redtube.com"
 ];
 
-async function deleteAfter(msg, ms = 5000) {
-  if (!msg) return;
-  setTimeout(() => msg.delete().catch(() => null), ms);
-}
 let client;
 
+// ================= DATA SAVE =================
 function loadData() {
   try {
     return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
@@ -46,11 +44,11 @@ function loadData() {
   }
 }
 
+let store = loadData();
+
 function saveData() {
   fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2));
 }
-
-let store = loadData();
 
 function getGuildData(guildId) {
   if (!store[guildId]) {
@@ -71,6 +69,12 @@ function getGuildData(guildId) {
   return store[guildId];
 }
 
+// ================= HELPERS =================
+async function deleteAfter(msg, ms = 5000) {
+  if (!msg) return;
+  setTimeout(() => msg.delete().catch(() => null), ms);
+}
+
 function canManageGuild(message) {
   if (!message.member) return false;
   const roles = message.member.roles.cache;
@@ -85,7 +89,6 @@ function canManageGuild(message) {
 
 function canBanUsers(message) {
   if (!message.member) return false;
-
   const roles = message.member.roles.cache;
 
   return (
@@ -126,6 +129,7 @@ async function findTargetMember(message, args) {
 
 function parseDuration(input) {
   if (!input) return null;
+
   const match = String(input).toLowerCase().match(/^(\d+)(s|sec|m|min|h|hr|d|day)$/);
   if (!match) return null;
 
@@ -157,12 +161,12 @@ async function sendAutomodLog(message, word) {
   if (!log || !log.isTextBased()) return;
 
   const embed = new EmbedBuilder()
-    .setTitle("🚫 Blacklisted Word Deleted")
+    .setTitle("🚫 Blacklisted Message Deleted")
     .setColor(0xef4444)
     .addFields(
       { name: "User", value: `${message.author.tag}`, inline: true },
       { name: "Channel", value: `${message.channel}`, inline: true },
-      { name: "Word", value: `\`${word}\``, inline: true },
+      { name: "Matched", value: `\`${word}\``, inline: true },
       { name: "Message", value: message.content.slice(0, 1000), inline: false }
     )
     .setTimestamp();
@@ -176,6 +180,7 @@ async function sendModLog(embed) {
   await log.send({ embeds: [embed] }).catch(() => null);
 }
 
+// ================= COMMANDS =================
 async function handleCommands(message) {
   const data = getGuildData(message.guild.id);
   const prefix = data.prefix || DEFAULT_PREFIX;
@@ -186,6 +191,7 @@ async function handleCommands(message) {
   const command = (args.shift() || "").toLowerCase();
   if (!command) return true;
 
+  // ================= AFK / AUCTION / CHANNEL TOOLS =================
   if (command === "afk") return handleAfkCommand(message, args, prefix);
   if (command === "auction") return handleAuctionCommand(message, args, prefix);
   if (command === "bid") return handleAuctionCommand(message, ["bid", ...args], prefix);
@@ -194,6 +200,7 @@ async function handleCommands(message) {
     return handleChannelToolsCommand(message, args, prefix, command, canManageGuild);
   }
 
+  // ================= PING =================
   if (command === "ping") {
     const msg = await message.reply("🏓 Pinging...").catch(() => null);
     if (!msg) return true;
@@ -204,6 +211,7 @@ async function handleCommands(message) {
     return msg.edit(`🏓 Pong!\n📨 Message: \`${latency}ms\`\n🌐 API: \`${api}ms\``).catch(() => null);
   }
 
+  // ================= PREFIX =================
   if (command === "prefix") {
     return message.reply(`Current prefix: \`${prefix}\``);
   }
@@ -221,8 +229,9 @@ async function handleCommands(message) {
     return message.reply(`✅ Prefix updated to \`${newPrefix}\``);
   }
 
+  // ================= WARN =================
   if (command === "warn") {
-    if (!canManageGuild(message)) return message.reply("No permission.");
+    if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
     const member = await findTargetMember(message, args);
     if (!member) return message.reply(`Usage: \`${prefix}warn @user reason\``);
@@ -240,6 +249,7 @@ async function handleCommands(message) {
       mod: message.author.id,
       date: new Date().toISOString()
     });
+
     saveData();
 
     const embed = new EmbedBuilder()
@@ -259,6 +269,7 @@ async function handleCommands(message) {
     return message.reply(`✅ Warned ${member.user.tag}\nWarn ID: \`${warnId}\``);
   }
 
+  // ================= WARNINGS =================
   if (command === "warnings") {
     const member = await findTargetMember(message, args) || message.member;
     const warnings = data.warnings[member.id] || [];
@@ -280,8 +291,9 @@ async function handleCommands(message) {
     return message.reply({ content: ids, embeds: [embed] });
   }
 
+  // ================= UNWARN =================
   if (command === "unwarn") {
-    if (!canManageGuild(message)) return message.reply("No permission.");
+    if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
     const member = await findTargetMember(message, args);
     const warnId = args[1];
@@ -298,8 +310,9 @@ async function handleCommands(message) {
     return message.reply(`✅ Removed warning \`${warnId}\``);
   }
 
+  // ================= MUTE =================
   if (command === "mute" || command === "timeout") {
-    if (!canManageGuild(message)) return message.reply("No permission.");
+    if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
     if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.ModerateMembers)) {
       return message.reply("I need Moderate Members permission.");
@@ -334,8 +347,9 @@ async function handleCommands(message) {
     return message.reply(`🔇 Muted ${member.user.tag} for ${durationText}`);
   }
 
+  // ================= UNMUTE =================
   if (command === "unmute") {
-    if (!canManageGuild(message)) return message.reply("No permission.");
+    if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
     const member = await findTargetMember(message, args);
     if (!member) return message.reply(`Usage: \`${prefix}unmute @user\``);
@@ -344,8 +358,9 @@ async function handleCommands(message) {
     return message.reply(`🔊 Unmuted ${member.user.tag}`);
   }
 
+  // ================= BAN =================
   if (command === "ban") {
-  if (!canBanUsers(message)) return message.reply("❌ Only admin+ can ban.");
+    if (!canBanUsers(message)) return message.reply("❌ Only admin+ can ban.");
 
     if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.BanMembers)) {
       return message.reply("I need Ban Members permission.");
@@ -375,8 +390,9 @@ async function handleCommands(message) {
     return message.reply(`🔨 Banned ${member.user.tag}`);
   }
 
+  // ================= UNBAN =================
   if (command === "unban") {
-    if (!canManageGuild(message)) return message.reply("No permission.");
+    if (!canBanUsers(message)) return message.reply("❌ Only admin+ can unban.");
 
     const userId = args[0];
     if (!userId) return message.reply(`Usage: \`${prefix}unban userId reason\``);
@@ -387,8 +403,9 @@ async function handleCommands(message) {
     return message.reply(`✅ Unbanned \`${userId}\``);
   }
 
+  // ================= PURGE =================
   if (command === "purge") {
-    if (!canManageGuild(message)) return message.reply("No permission.");
+    if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
     if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
       return message.reply("I need Manage Messages permission.");
@@ -403,12 +420,14 @@ async function handleCommands(message) {
     if (!deleted) return message.reply("Could not purge messages.");
 
     const msg = await message.channel.send(`✅ Purged ${deleted.size} messages.`);
-    setTimeout(() => msg.delete().catch(() => null), 5000);
+    await deleteAfter(msg);
+    await deleteAfter(message);
     return true;
   }
 
+  // ================= ROLE =================
   if (command === "role") {
-    if (!canManageGuild(message)) return message.reply("No permission.");
+    if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
     if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
       return message.reply("I need Manage Roles permission.");
@@ -441,7 +460,7 @@ async function handleCommands(message) {
     return message.reply(`✅ Added **${role.name}** to ${member.user.tag}`);
   }
 
-      // ================= BLACKLIST ADD =================
+  // ================= BLACKLIST ADD =================
   if (command === "bl" || command === "blacklist") {
     if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
@@ -532,6 +551,7 @@ async function handleCommands(message) {
     });
   }
 
+  // ================= HELP =================
   if (command === "help") {
     const embed = new EmbedBuilder()
       .setTitle("🔥 Commands")
@@ -553,6 +573,7 @@ async function handleCommands(message) {
   return false;
 }
 
+// ================= BOT START =================
 function startBot() {
   client = new Client({
     intents: [
@@ -561,10 +582,6 @@ function startBot() {
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.MessageContent
     ]
-  });
-
-  client.once("clientReady", () => {
-    console.log(`Logged in as ${client.user.tag}`);
   });
 
   client.once("ready", () => {
@@ -584,6 +601,7 @@ function startBot() {
 
       if (!message.content.startsWith(prefix) && !hasBypassRole(message)) {
         const word = containsBlacklistedWord(message.content, data.words);
+
         if (word) {
           await message.delete().catch(() => null);
           await sendAutomodLog(message, word);
