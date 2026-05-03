@@ -1,5 +1,7 @@
 const { PermissionsBitField, EmbedBuilder } = require("discord.js");
 
+const DELETE_AFTER_MS = 5000;
+
 function parseTime(input) {
   if (!input) return null;
 
@@ -27,14 +29,41 @@ function getTargetChannel(message, args) {
   return message.channel;
 }
 
+async function deleteLater(msg, ms = DELETE_AFTER_MS) {
+  if (!msg) return;
+  setTimeout(() => {
+    msg.delete().catch(() => null);
+  }, ms);
+}
+
+async function cleanCommandMessage(message) {
+  await message.delete().catch(() => null);
+}
+
+async function sendSmallEmbed(message, color, text) {
+  const sent = await message.channel.send({
+    embeds: [
+      new EmbedBuilder()
+        .setColor(color)
+        .setDescription(text)
+    ]
+  }).catch(() => null);
+
+  await deleteLater(sent);
+}
+
 async function handleChannelToolsCommand(message, args, prefix, command, canManageGuild) {
+  await cleanCommandMessage(message);
+
   if (!canManageGuild(message)) {
-    await message.reply("❌ You do not have permission.");
+    const reply = await message.channel.send("❌ You do not have permission.").catch(() => null);
+    await deleteLater(reply);
     return true;
   }
 
   if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
-    await message.reply("❌ I need Manage Channels permission.");
+    const reply = await message.channel.send("❌ I need Manage Channels permission.").catch(() => null);
+    await deleteLater(reply);
     return true;
   }
 
@@ -43,104 +72,61 @@ async function handleChannelToolsCommand(message, args, prefix, command, canMana
 
     let timeArg = args[0];
 
-    if (message.mentions.channels.first() || message.guild.channels.cache.get(args[0]?.replace(/[<#>]/g, ""))) {
+    if (
+      message.mentions.channels.first() ||
+      message.guild.channels.cache.get(args[0]?.replace(/[<#>]/g, ""))
+    ) {
       timeArg = args[1];
     }
 
     if (!timeArg) {
-      await message.reply(`Usage: ${prefix}slowmode #channel 10s`);
+      const reply = await message.channel.send(`Usage: ${prefix}slowmode #channel 10s`).catch(() => null);
+      await deleteLater(reply);
       return true;
     }
 
     if (["off", "disable", "0", "none"].includes(timeArg.toLowerCase())) {
       await channel.setRateLimitPerUser(0, `Slowmode disabled by ${message.author.tag}`);
-
-      await message.reply({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle("✅ Slowmode Disabled")
-            .setColor(0x22c55e)
-            .setDescription(`${channel} slowmode is now off.`)
-            .setTimestamp()
-        ]
-      });
-
+      await sendSmallEmbed(message, 0x22c55e, `✅ Slowmode: ${channel} → **off**`);
       return true;
     }
 
     const seconds = parseTime(timeArg);
 
     if (seconds === null || seconds < 0 || seconds > 21600) {
-      await message.reply("❌ Use time like `5s`, `10min`, `1h`. Max is 6h.");
+      const reply = await message.channel.send("❌ Use time like `5s`, `10min`, `1h`. Max is 6h.").catch(() => null);
+      await deleteLater(reply);
       return true;
     }
 
     await channel.setRateLimitPerUser(seconds, `Slowmode set by ${message.author.tag}`);
-
-    await message.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("🐢 Slowmode Updated")
-          .setColor(0x5865f2)
-          .addFields(
-            { name: "Channel", value: `${channel}`, inline: true },
-            { name: "Time", value: timeArg, inline: true }
-          )
-          .setTimestamp()
-      ]
-    });
-
+    await sendSmallEmbed(message, 0x5865f2, `🐢 Slowmode: ${channel} → **${timeArg}**`);
     return true;
   }
 
   if (command === "lock") {
     const channel = getTargetChannel(message, args);
 
-    let reasonArgs = args;
+    await channel.permissionOverwrites.edit(
+      message.guild.roles.everyone,
+      { SendMessages: false },
+      { reason: `Channel locked by ${message.author.tag}` }
+    );
 
-    if (message.mentions.channels.first() || message.guild.channels.cache.get(args[0]?.replace(/[<#>]/g, ""))) {
-      reasonArgs = args.slice(1);
-    }
-
-    const reason = reasonArgs.join(" ") || "Channel locked by staff";
-
-    await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-      SendMessages: false
-    }, { reason });
-
-    await message.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("🔒 Channel Locked")
-          .setColor(0xef4444)
-          .addFields(
-            { name: "Channel", value: `${channel}`, inline: true },
-            { name: "Reason", value: reason, inline: false }
-          )
-          .setTimestamp()
-      ]
-    });
-
+    await sendSmallEmbed(message, 0xef4444, `🔒 ${channel} locked`);
     return true;
   }
 
   if (command === "unlock") {
     const channel = getTargetChannel(message, args);
 
-    await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-      SendMessages: null
-    }, { reason: `Channel unlocked by ${message.author.tag}` });
+    await channel.permissionOverwrites.edit(
+      message.guild.roles.everyone,
+      { SendMessages: null },
+      { reason: `Channel unlocked by ${message.author.tag}` }
+    );
 
-    await message.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("🔓 Channel Unlocked")
-          .setColor(0x22c55e)
-          .setDescription(`${channel} is now unlocked.`)
-          .setTimestamp()
-      ]
-    });
-
+    await sendSmallEmbed(message, 0x22c55e, `🔓 ${channel} unlocked`);
     return true;
   }
 
