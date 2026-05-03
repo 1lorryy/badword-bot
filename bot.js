@@ -21,6 +21,21 @@ const STAFF_ROLE_ID = "1481370041420087474";
 const MOD_ROLE_ID = "1481370041432932379";
 const MAIN_ADMIN_ROLE_ID = "1481370041441189959";
 
+const BLOCKED_LINKS = [
+  "discord.gg/",
+  "discord.com/invite/",
+  "onlyfans.com",
+  "pornhub.com",
+  "xvideos.com",
+  "xnxx.com",
+  "xhamster.com",
+  "redtube.com"
+];
+
+async function deleteAfter(msg, ms = 5000) {
+  if (!msg) return;
+  setTimeout(() => msg.delete().catch(() => null), ms);
+}
 let client;
 
 function loadData() {
@@ -65,6 +80,17 @@ function canManageGuild(message) {
     roles.has(MAIN_ADMIN_ROLE_ID) ||
     roles.has(STAFF_ROLE_ID) ||
     roles.has(MOD_ROLE_ID)
+  );
+}
+
+function canBanUsers(message) {
+  if (!message.member) return false;
+
+  const roles = message.member.roles.cache;
+
+  return (
+    message.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
+    roles.has(MAIN_ADMIN_ROLE_ID)
   );
 }
 
@@ -116,7 +142,14 @@ function parseDuration(input) {
 
 function containsBlacklistedWord(content, words) {
   const text = content.toLowerCase();
-  return words.find(w => w && text.includes(String(w).toLowerCase()));
+
+  const word = words.find(w => w && text.includes(String(w).toLowerCase()));
+  if (word) return word;
+
+  const link = BLOCKED_LINKS.find(l => text.includes(l));
+  if (link) return link;
+
+  return null;
 }
 
 async function sendAutomodLog(message, word) {
@@ -176,7 +209,7 @@ async function handleCommands(message) {
   }
 
   if (command === "setprefix") {
-    if (!canManageGuild(message)) return message.reply("No permission.");
+    if (!canBanUsers(message)) return message.reply("❌ Only admin+ can ban.");
 
     const newPrefix = args[0];
     if (!newPrefix || newPrefix.length > 3) {
@@ -422,17 +455,20 @@ async function handleCommands(message) {
     data.words.push(word);
     saveData();
 
-    return message.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("🚫 Word Blacklisted")
-          .setColor(0xef4444)
-          .setDescription(`Added \`${word}\` to the blacklist.`)
-          .setFooter({ text: "AutoMod updated" })
-          .setTimestamp()
-      ]
-    });
-  }
+    const reply = await message.reply({
+  embeds: [
+    new EmbedBuilder()
+      .setTitle("🚫 Word Blacklisted")
+      .setColor(0xef4444)
+      .setDescription(`Added \`${word}\` to the blacklist.`)
+      .setFooter({ text: "AutoMod updated" })
+      .setTimestamp()
+  ]
+}).catch(() => null);
+
+await deleteAfter(reply);
+await deleteAfter(message);
+return true;
 
   // ================= BLACKLIST REMOVE =================
   if (command === "unbl" || command === "unblacklist") {
@@ -449,17 +485,20 @@ async function handleCommands(message) {
       return message.reply(`⚠️ \`${word}\` was not found in blacklist.`);
     }
 
-    return message.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("✅ Word Removed")
-          .setColor(0x22c55e)
-          .setDescription(`Removed \`${word}\` from the blacklist.`)
-          .setFooter({ text: "AutoMod updated" })
-          .setTimestamp()
-      ]
-    });
-  }
+    const reply = await message.reply({
+  embeds: [
+    new EmbedBuilder()
+      .setTitle("✅ Word Removed")
+      .setColor(0x22c55e)
+      .setDescription(`Removed \`${word}\` from the blacklist.`)
+      .setFooter({ text: "AutoMod updated" })
+      .setTimestamp()
+  ]
+}).catch(() => null);
+
+await deleteAfter(reply);
+await deleteAfter(message);
+return true;
 
   // ================= BLACKLIST WORDS =================
   if (command === "words") {

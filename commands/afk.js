@@ -95,7 +95,10 @@ async function handleAfkMentionsAndReturn(message, prefix) {
 
     if (data.pings.length > 10) data.pings.shift();
 
-    await message.reply(`${user} is AFK for ${awayFor} - ${data.reason}`).catch(() => null);
+    await message.reply({
+  content: `@${user.username} is AFK for ${awayFor} - ${data.reason}`,
+  allowedMentions: { parse: [] }
+}).catch(() => null);
   }
 }
 

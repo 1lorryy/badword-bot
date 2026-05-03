@@ -222,19 +222,19 @@ async function handleAuctionCommand(message, args, prefix) {
     resetAuctionTimer();
 
     await message.channel.send({
-      content: `💰 <@${message.author.id}> is now the highest bidder!`,
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("💰 New Highest Bid")
-          .setColor(0x22c55e)
-          .addFields(
-            { name: "Item", value: activeAuction.item, inline: false },
-            { name: "Bid", value: String(amount), inline: true },
-            { name: "Time Left (+30s)", value: formatTime(activeAuction.endsAt - Date.now()), inline: true }
-          )
-          .setTimestamp()
-      ]
-    });
+  content: `💰 <@${message.author.id}> is now the highest bidder!`,
+  embeds: [
+    new EmbedBuilder()
+      .setTitle("💰 New Highest Bid")
+      .setColor(0x22c55e)
+      .addFields(
+        { name: "Item", value: activeAuction.item, inline: false },
+        { name: "Bid", value: String(amount), inline: true },
+        { name: "Time Left (+30s)", value: formatTime(activeAuction.endsAt - Date.now()), inline: true }
+      )
+      .setTimestamp()
+  ]
+});
 
     return true;
   }
