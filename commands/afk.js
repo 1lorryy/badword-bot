@@ -37,10 +37,8 @@ async function handleAfkCommand(message, args, prefix) {
     await member.setNickname(newNick, "User went AFK").catch(() => null);
   }
 
-  await message.reply({
-    content: `${member.displayName} is now AFK - ${reason}`,
-    allowedMentions: { parse: [] }
-  }).catch(() => null);
+  // This one CAN ping you.
+  await message.reply(`${message.author} is now AFK - ${reason}`).catch(() => null);
 
   return true;
 }
@@ -103,6 +101,7 @@ async function handleAfkMentionsAndReturn(message, prefix) {
     const member = message.guild.members.cache.get(user.id);
     const displayName = member ? member.displayName : user.username;
 
+    // This one will NOT ping the AFK person.
     await message.reply({
       content: `${displayName} is AFK for ${awayFor} - ${data.reason}`,
       allowedMentions: { parse: [] }
