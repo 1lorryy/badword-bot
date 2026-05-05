@@ -85,15 +85,23 @@ function getGuildData(guildId) {
     store[guildId] = {
       prefix: DEFAULT_PREFIX,
       words: [],
+      blockedLinks: [],
+      customCommands: {},
       warnings: {}
     };
     saveData();
   }
 
   if (!Array.isArray(store[guildId].words)) store[guildId].words = [];
+if (!Array.isArray(store[guildId].blockedLinks)) store[guildId].blockedLinks = [];
+
+if (!store[guildId].customCommands || typeof store[guildId].customCommands !== "object") {
+  store[guildId].customCommands = {};
+}
   if (!store[guildId].warnings || typeof store[guildId].warnings !== "object") {
     store[guildId].warnings = {};
   }
+
   if (!store[guildId].prefix) store[guildId].prefix = DEFAULT_PREFIX;
 
   return store[guildId];
@@ -236,6 +244,20 @@ async function handleCommands(message) {
   const command = (args.shift() || "").toLowerCase();
   if (!command) return true;
 
+// ================= CUSTOM COMMANDS =================
+if (data.customCommands && data.customCommands[command]) {
+  const custom = data.customCommands[command];
+  const response = typeof custom === "string" ? custom : custom.response;
+  const allowPings = typeof custom === "object" && custom.allowPings;
+
+  return message.channel.send({
+    content: response,
+    allowedMentions: allowPings ? undefined : { parse: [] }
+  });
+}
+
+// keep the rest of your normal commands here...
+
   // ================= AFK / AUCTION / CHANNEL TOOLS =================
   if (command === "purchase") return handleBuyCommand(message, args, prefix, canManageGuild);
   if (command === "afk") return handleAfkCommand(message, args, prefix);
@@ -263,7 +285,9 @@ async function handleCommands(message) {
   }
 
   if (command === "setprefix") {
-    if (!canBanUsers(message)) return message.reply("❌ Only admin+ can change prefix.");
+    if (!canBanUsers(message)) {
+      return message.reply("❌ Only admin+ can change prefix.");
+    }
 
     const newPrefix = args[0];
     if (!newPrefix || newPrefix.length > 3) {
@@ -272,6 +296,7 @@ async function handleCommands(message) {
 
     data.prefix = newPrefix;
     saveData();
+
     return message.reply(`✅ Prefix updated to \`${newPrefix}\``);
   }
 
@@ -402,6 +427,42 @@ async function handleCommands(message) {
 
     await member.timeout(null);
     return message.reply(`🔊 Unmuted ${member.user.tag}`);
+  }
+
+  // ================= KICK =================
+  if (command === "kick") {
+    if (!canManageGuild(message)) return message.reply("❌ No permission.");
+
+    if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.KickMembers)) {
+      return message.reply("I need Kick Members permission.");
+    }
+
+    const member = await findTargetMember(message, args);
+    if (!member) return message.reply(`Usage: \`${prefix}kick @user reason\``);
+
+    if (!member.kickable) {
+      return message.reply("❌ I cannot kick this user. Their role may be higher than mine.");
+    }
+
+    const reason = message.reference
+      ? args.join(" ") || "No reason"
+      : args.slice(1).join(" ") || "No reason";
+
+    const embed = new EmbedBuilder()
+      .setTitle("👢 User Kicked")
+      .setColor(0xef4444)
+      .addFields(
+        { name: "User", value: `${member.user.tag}`, inline: true },
+        { name: "Moderator", value: `${message.author.tag}`, inline: true },
+        { name: "Reason", value: reason, inline: false }
+      )
+      .setTimestamp();
+
+    await member.send({ embeds: [embed] }).catch(() => null);
+    await member.kick(reason);
+    await sendModLog(embed);
+
+    return message.reply(`👢 Kicked ${member.user.tag}`);
   }
 
   // ================= BAN =================
@@ -598,20 +659,32 @@ async function handleCommands(message) {
   // ================= HELP =================
   if (command === "help") {
     const embed = new EmbedBuilder()
-      .setTitle("🔥 Commands")
-      .setColor(0x5865f2)
-      .setDescription(`Prefix: \`${prefix}\``)
-      .addFields(
-        { name: "🛡️ Moderation", value: `\`${prefix}warn\` • \`${prefix}mute\` • \`${prefix}ban\` • \`${prefix}warnings\` • \`${prefix}unwarn\` • \`${prefix}unmute\` • \`${prefix}unban\` • \`${prefix}purge\``, inline: false },
-        { name: "⚙️ Server", value: `\`${prefix}setprefix\` • \`${prefix}role\` • \`${prefix}purchase\``, inline: false },
-        { name: "🚫 AutoMod", value: `\`${prefix}bl\` • \`${prefix}unbl\` • \`${prefix}words\``, inline: false },
-        { name: "🏆 Auction", value: `\`${prefix}auction start\` • \`${prefix}bid\` • \`${prefix}auction end\``, inline: false },
-        { name: "🔒 Channels", value: `\`${prefix}lock\` • \`${prefix}unlock\` • \`${prefix}slowmode\``, inline: false },
-        { name: "💤 Utility", value: `\`${prefix}afk\` • \`${prefix}ping\``, inline: false }
-      )
-      .setFooter({ text: "🔥 DASHBOARD Bot" });
+  .setTitle("🔥 Commands")
+  .setColor(0x5865f2)
+  .setDescription(`Prefix: \`${prefix}\``)
+  .addFields(
+    { name: "🛡️ Moderation", value: `\`${prefix}warn\` • \`${prefix}mute\` • \`${prefix}kick\` • \`${prefix}ban\` • \`${prefix}warnings\` • \`${prefix}unwarn\` • \`${prefix}unmute\` • \`${prefix}unban\` • \`${prefix}purge\``, inline: false },
+    { name: "⚙️ Server", value: `\`${prefix}setprefix\` • \`${prefix}role\` • \`${prefix}purchase\``, inline: false },
+    { name: "🚫 AutoMod", value: `\`${prefix}bl\` • \`${prefix}unbl\` • \`${prefix}words\``, inline: false },
+    { name: "🏆 Auction", value: `\`${prefix}auction start\` • \`${prefix}bid\` • \`${prefix}auction end\``, inline: false },
+    { name: "🔒 Channels", value: `\`${prefix}lock\` • \`${prefix}unlock\` • \`${prefix}slowmode\``, inline: false },
+    { name: "💤 Utility", value: `\`${prefix}afk\` • \`${prefix}ping\``, inline: false }
+  );
 
-    return message.reply({ embeds: [embed] });
+if (data.customCommands && Object.keys(data.customCommands).length) {
+  embed.addFields({
+    name: "💬 Custom Commands",
+    value: Object.keys(data.customCommands)
+      .map(cmd => `\`${prefix}${cmd}\``)
+      .join(" • ")
+      .slice(0, 1000),
+    inline: false
+  });
+}
+
+embed.setFooter({ text: "🔥 DASHBOARD Bot" });
+
+return message.reply({ embeds: [embed] });
   }
 
   return false;
@@ -646,7 +719,8 @@ function startBot() {
       if (!message.content.startsWith(prefix) && !hasBypassRole(message)) {
         const word = containsBlacklistedWord(message.content, [
           ...CORE_BLACKLIST,
-          ...data.words
+          ...data.words,
+          ...(data.blockedLinks || [])
         ]);
 
         if (word) {
@@ -656,7 +730,27 @@ function startBot() {
         }
       }
 
-      await handleCommands(message);
+      const usedCommand = await handleCommands(message);
+
+      if (!usedCommand) {
+        const freshData = getGuildData(message.guild.id);
+        const msg = message.content.toLowerCase().trim();
+
+        if (
+          freshData.customCommands &&
+          typeof freshData.customCommands === "object" &&
+          freshData.customCommands[msg]
+        ) {
+          const custom = freshData.customCommands[msg];
+          const response = typeof custom === "string" ? custom : custom.response;
+          const allowPings = typeof custom === "object" && custom.allowPings;
+
+          return message.channel.send({
+            content: response,
+            allowedMentions: allowPings ? undefined : { parse: [] }
+          });
+        }
+      }
     } catch (err) {
       console.error("Bot error:", err);
     }
