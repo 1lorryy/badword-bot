@@ -34,8 +34,6 @@ const BLOCKED_LINKS = [
   "redtube.com"
 ];
 
-let client;
-
 const CORE_BLACKLIST = [
   "ass",
   "nigga",
@@ -62,6 +60,8 @@ const CORE_BLACKLIST = [
   "sexcam",
   "bubs"
 ];
+
+let client;
 
 // ================= DATA SAVE =================
 function loadData() {
@@ -198,6 +198,7 @@ function containsBlacklistedWord(content, words) {
 
   return null;
 }
+
 async function sendAutomodLog(message, word) {
   const log = await message.guild.channels.fetch(LOG_CHANNEL_ID).catch(() => null);
   if (!log || !log.isTextBased()) return;
@@ -234,9 +235,7 @@ async function handleCommands(message) {
   if (!command) return true;
 
   // ================= AFK / AUCTION / CHANNEL TOOLS =================
-  if (command === "purchase") {
-  return handleBuyCommand(message, args, prefix, canManageGuild);
-}
+  if (command === "purchase") return handleBuyCommand(message, args, prefix, canManageGuild);
   if (command === "afk") return handleAfkCommand(message, args, prefix);
   if (command === "auction") return handleAuctionCommand(message, args, prefix);
   if (command === "bid") return handleAuctionCommand(message, ["bid", ...args], prefix);
@@ -509,7 +508,8 @@ async function handleCommands(message) {
   if (command === "bl" || command === "blacklist") {
     if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
-    const word = if (CORE_BLACKLIST.includes(word) || data.words.includes(word)) {
+    const word = args.join(" ").trim().toLowerCase();
+    if (!word) return message.reply(`Usage: \`${prefix}bl word\``);
 
     if (CORE_BLACKLIST.includes(word) || data.words.includes(word)) {
       const reply = await message.reply(`⚠️ \`${word}\` is already blacklisted.`);
@@ -541,12 +541,26 @@ async function handleCommands(message) {
   if (command === "unbl" || command === "unblacklist") {
     if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
-    const word = if (CORE_BLACKLIST.includes(word)) {
-  const reply = await message.reply(`❌ \`${word}\` is protected and cannot be removed.`);
-  await deleteAfter(reply);
-  await deleteAfter(message);
-  return true;
-}
+    const word = args.join(" ").trim().toLowerCase();
+    if (!word) return message.reply(`Usage: \`${prefix}unbl word\``);
+
+    if (CORE_BLACKLIST.includes(word)) {
+      const reply = await message.reply(`❌ \`${word}\` is protected and cannot be removed.`);
+      await deleteAfter(reply);
+      await deleteAfter(message);
+      return true;
+    }
+
+    const before = data.words.length;
+    data.words = data.words.filter(w => w !== word);
+    saveData();
+
+    if (before === data.words.length) {
+      const reply = await message.reply(`⚠️ \`${word}\` was not found in blacklist.`);
+      await deleteAfter(reply);
+      await deleteAfter(message);
+      return true;
+    }
 
     const reply = await message.reply({
       embeds: [
@@ -566,18 +580,18 @@ async function handleCommands(message) {
 
   // ================= BLACKLIST WORDS =================
   if (command === "words") {
-  const allWords = [...new Set([...CORE_BLACKLIST, ...data.words])];
+    const allWords = [...new Set([...CORE_BLACKLIST, ...data.words])];
 
-  return message.reply({
-    embeds: [
-      new EmbedBuilder()
-        .setTitle("🚫 Blacklisted Words")
-        .setColor(0x5865f2)
-        .setDescription(allWords.map(w => `\`${w}\``).join(", ").slice(0, 4000))
-        .setFooter({ text: `${allWords.length} word(s) blocked` })
-    ]
-  });
-}
+    return message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("🚫 Blacklisted Words")
+          .setColor(0x5865f2)
+          .setDescription(allWords.map(w => `\`${w}\``).join(", ").slice(0, 4000))
+          .setFooter({ text: `${allWords.length} word(s) blocked` })
+      ]
+    });
+  }
 
   // ================= HELP =================
   if (command === "help") {
@@ -629,9 +643,9 @@ function startBot() {
 
       if (!message.content.startsWith(prefix) && !hasBypassRole(message)) {
         const word = containsBlacklistedWord(message.content, [
-  ...CORE_BLACKLIST,
-  ...data.words
-]);
+          ...CORE_BLACKLIST,
+          ...data.words
+        ]);
 
         if (word) {
           await message.delete().catch(() => null);
