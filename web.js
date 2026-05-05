@@ -1,3 +1,4 @@
+const { DEFAULT_PURCHASE_LINKS } = require("./commands/buy");
 const express = require("express");
 const session = require("express-session");
 const fs = require("fs");
@@ -45,6 +46,10 @@ app.use(session({
   saveUninitialized: false
 }));
 
+function cloneDefaultPurchaseLinks() {
+  return JSON.parse(JSON.stringify(DEFAULT_PURCHASE_LINKS));
+}
+
 function loadData() {
   try {
     return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
@@ -57,6 +62,30 @@ function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
+function fixGuildData(cfg) {
+  if (!cfg.prefix) cfg.prefix = DEFAULT_PREFIX;
+  if (!Array.isArray(cfg.words)) cfg.words = [];
+  if (!Array.isArray(cfg.blockedLinks)) cfg.blockedLinks = [];
+
+  if (!cfg.customCommands || typeof cfg.customCommands !== "object") {
+    cfg.customCommands = {};
+  }
+
+  if (!cfg.warnings || typeof cfg.warnings !== "object") {
+    cfg.warnings = {};
+  }
+
+  if (!cfg.purchaseLinks || typeof cfg.purchaseLinks !== "object") {
+    cfg.purchaseLinks = cloneDefaultPurchaseLinks();
+  }
+
+  for (const key of ["classes", "ads6h", "ads24h", "extras"]) {
+    if (!Array.isArray(cfg.purchaseLinks[key])) {
+      cfg.purchaseLinks[key] = cloneDefaultPurchaseLinks()[key] || [];
+    }
+  }
+}
+
 function getGuildData(guildId) {
   const data = loadData();
 
@@ -66,23 +95,14 @@ function getGuildData(guildId) {
       words: [],
       blockedLinks: [],
       customCommands: {},
+      purchaseLinks: cloneDefaultPurchaseLinks(),
       warnings: {}
     };
     saveData(data);
   }
 
-  if (!Array.isArray(data[guildId].words)) data[guildId].words = [];
-  if (!Array.isArray(data[guildId].blockedLinks)) data[guildId].blockedLinks = [];
-
-  if (!data[guildId].customCommands || typeof data[guildId].customCommands !== "object") {
-    data[guildId].customCommands = {};
-  }
-
-  if (!data[guildId].warnings || typeof data[guildId].warnings !== "object") {
-    data[guildId].warnings = {};
-  }
-
-  if (!data[guildId].prefix) data[guildId].prefix = DEFAULT_PREFIX;
+  fixGuildData(data[guildId]);
+  saveData(data);
 
   return data[guildId];
 }
@@ -96,24 +116,14 @@ function updateGuildData(guildId, updater) {
       words: [],
       blockedLinks: [],
       customCommands: {},
+      purchaseLinks: cloneDefaultPurchaseLinks(),
       warnings: {}
     };
   }
 
-  if (!Array.isArray(data[guildId].words)) data[guildId].words = [];
-  if (!Array.isArray(data[guildId].blockedLinks)) data[guildId].blockedLinks = [];
-
-  if (!data[guildId].customCommands || typeof data[guildId].customCommands !== "object") {
-    data[guildId].customCommands = {};
-  }
-
-  if (!data[guildId].warnings || typeof data[guildId].warnings !== "object") {
-    data[guildId].warnings = {};
-  }
-
-  if (!data[guildId].prefix) data[guildId].prefix = DEFAULT_PREFIX;
-
+  fixGuildData(data[guildId]);
   updater(data[guildId]);
+  fixGuildData(data[guildId]);
   saveData(data);
 }
 
@@ -256,6 +266,7 @@ function renderPage({ req, guildId, tab, title, content }) {
             <a class="nav ${tab === "prefix" ? "active" : ""}" href="${sidebarBase}/prefix">⚙️ Prefix</a>
             <a class="nav ${tab === "warnings" ? "active" : ""}" href="${sidebarBase}/warnings">⚠️ Warnings</a>
             <a class="nav ${tab === "custom" ? "active" : ""}" href="${sidebarBase}/custom">💬 Custom Commands</a>
+            <a class="nav ${tab === "purchase" ? "active" : ""}" href="${sidebarBase}/purchase">🛒 Purchase Links</a>
             <a class="nav ${tab === "info" ? "active" : ""}" href="${sidebarBase}/info">📊 Info</a>
           ` : ""}
           <a class="nav" href="/">Servers</a>
@@ -511,10 +522,6 @@ app.get("/dashboard/:guildId/custom", requireLogin, requireGuildAdmin, (req, res
   const { guildId } = req.params;
   const cfg = getGuildData(guildId);
 
-  if (!cfg.customCommands || typeof cfg.customCommands !== "object") {
-    cfg.customCommands = {};
-  }
-
   const commands = Object.entries(cfg.customCommands)
     .map(([cmd, data]) => {
       const response = typeof data === "string" ? data : data.response;
@@ -581,10 +588,6 @@ app.post("/dashboard/:guildId/custom/add", requireLogin, requireGuildAdmin, (req
 
   if (command && response) {
     updateGuildData(req.params.guildId, cfg => {
-      if (!cfg.customCommands || typeof cfg.customCommands !== "object") {
-        cfg.customCommands = {};
-      }
-
       cfg.customCommands[command] = {
         response,
         allowPings: !!req.body.allowPings
@@ -602,14 +605,93 @@ app.post("/dashboard/:guildId/custom/remove", requireLogin, requireGuildAdmin, (
     .replace(/^\?+/, "");
 
   updateGuildData(req.params.guildId, cfg => {
-    if (!cfg.customCommands || typeof cfg.customCommands !== "object") {
-      cfg.customCommands = {};
-    }
-
     delete cfg.customCommands[command];
   });
 
   res.redirect(`/dashboard/${req.params.guildId}/custom`);
+});
+
+// ================= PURCHASE LINKS =================
+app.get("/dashboard/:guildId/purchase", requireLogin, requireGuildAdmin, (req, res) => {
+  const { guildId } = req.params;
+  const cfg = getGuildData(guildId);
+  const links = cfg.purchaseLinks || cloneDefaultPurchaseLinks();
+
+  function renderGroup(key, title) {
+    const items = links[key] || [];
+
+    return `
+      <div class="card">
+        <h2>${title}</h2>
+        ${
+          items.length
+            ? items.map((item, index) => `
+              <div class="warn-box">
+                <b>${escapeHtml(item.name)}</b><br/>
+                <a href="${escapeHtml(item.url)}" target="_blank">${escapeHtml(item.url)}</a>
+                <form method="POST" action="/dashboard/${guildId}/purchase/remove" style="margin-top:10px;">
+                  <input type="hidden" name="group" value="${key}" />
+                  <input type="hidden" name="index" value="${index}" />
+                  <button type="submit">Remove</button>
+                </form>
+              </div>
+            `).join("")
+            : "<p>No links added.</p>"
+        }
+
+        <h3>Add link</h3>
+        <form method="POST" action="/dashboard/${guildId}/purchase/add" class="row">
+          <input type="hidden" name="group" value="${key}" />
+          <input type="text" name="name" placeholder="Name" required />
+          <input type="text" name="url" placeholder="https://www.roblox.com/game-pass/..." required />
+          <button type="submit">Add</button>
+        </form>
+      </div>
+    `;
+  }
+
+  res.send(renderPage({
+    req,
+    guildId,
+    tab: "purchase",
+    title: "Purchase Links",
+    content: `
+      ${renderGroup("classes", "✈️ Classes")}
+      ${renderGroup("ads6h", "⏱️ 10M–6H Ads")}
+      ${renderGroup("ads24h", "🕒 6H–24H Ads")}
+      ${renderGroup("extras", "➕ Extras")}
+    `
+  }));
+});
+
+app.post("/dashboard/:guildId/purchase/add", requireLogin, requireGuildAdmin, (req, res) => {
+  const group = String(req.body.group || "");
+  const name = String(req.body.name || "").trim();
+  const url = String(req.body.url || "").trim();
+
+  if (["classes", "ads6h", "ads24h", "extras"].includes(group) && name && url) {
+    updateGuildData(req.params.guildId, cfg => {
+      if (!Array.isArray(cfg.purchaseLinks[group])) cfg.purchaseLinks[group] = [];
+      cfg.purchaseLinks[group].push({ name, url });
+    });
+  }
+
+  res.redirect(`/dashboard/${req.params.guildId}/purchase`);
+});
+
+app.post("/dashboard/:guildId/purchase/remove", requireLogin, requireGuildAdmin, (req, res) => {
+  const group = String(req.body.group || "");
+  const index = Number(req.body.index);
+
+  if (["classes", "ads6h", "ads24h", "extras"].includes(group) && Number.isInteger(index)) {
+    updateGuildData(req.params.guildId, cfg => {
+      if (Array.isArray(cfg.purchaseLinks[group])) {
+        cfg.purchaseLinks[group].splice(index, 1);
+      }
+    });
+  }
+
+  res.redirect(`/dashboard/${req.params.guildId}/purchase`);
 });
 
 // ================= INFO =================
