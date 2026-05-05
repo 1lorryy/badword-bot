@@ -13,7 +13,7 @@ async function handleBuyCommand(message, args, prefix, canManageGuild) {
     .setDescription("Select the upgrade or add-on you want to purchase below.")
     .addFields(
       {
-        name: "✈️ Classes",
+        name: "✈️ Classes (coming soon!)",
         value: [
           "[Economy](https://www.roblox.com/game-pass/)",
           "[Premium Economy](https://www.roblox.com/game-pass/)",
