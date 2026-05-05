@@ -203,7 +203,21 @@ async function handleAuctionCommand(message, args, prefix) {
       return true;
     }
 
-    const amount = parseInt(args[0], 10);
+    const amountText = String(args[0] || "").trim();
+
+if (!/^\d+$/.test(amountText)) {
+  await message.reply(`Usage: ${prefix}bid amount`);
+  return true;
+}
+
+const amount = Number(amountText);
+
+const MAX_BID = 999999999999; // 999 billion max
+
+if (!Number.isSafeInteger(amount) || amount < 1 || amount > MAX_BID) {
+  await message.reply(`❌ Bid must be between 1 and ${MAX_BID}.`);
+  return true;
+}
 
     if (isNaN(amount)) {
       await message.reply(`Usage: ${prefix}bid amount`);

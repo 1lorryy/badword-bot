@@ -41,6 +41,8 @@ const CORE_BLACKLIST = [
   "nga",
   "idiot",
   "retard",
+  "bitchass",
+  "dumbass",
   "faggot",
   "fagot",
   "porn",
