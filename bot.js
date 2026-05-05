@@ -509,8 +509,7 @@ async function handleCommands(message) {
   if (command === "bl" || command === "blacklist") {
     if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
-    const word = args.join(" ").trim().toLowerCase();
-    if (!word) return message.reply(`Usage: \`${prefix}bl word\``);
+    const word = if (CORE_BLACKLIST.includes(word) || data.words.includes(word)) {
 
     if (CORE_BLACKLIST.includes(word) || data.words.includes(word)) {
       const reply = await message.reply(`⚠️ \`${word}\` is already blacklisted.`);
@@ -548,17 +547,6 @@ async function handleCommands(message) {
   await deleteAfter(message);
   return true;
 }
-
-    const before = data.words.length;
-    data.words = data.words.filter(w => w !== word);
-    saveData();
-
-    if (before === data.words.length) {
-      const reply = await message.reply(`⚠️ \`${word}\` was not found in blacklist.`);
-      await deleteAfter(reply);
-      await deleteAfter(message);
-      return true;
-    }
 
     const reply = await message.reply({
       embeds: [
