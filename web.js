@@ -506,8 +506,6 @@ app.get("/dashboard/:guildId/warnings", requireLogin, requireGuildAdmin, (req, r
   }));
 });
 
-
-
 // ================= CUSTOM COMMANDS =================
 app.get("/dashboard/:guildId/custom", requireLogin, requireGuildAdmin, (req, res) => {
   const { guildId } = req.params;
@@ -518,19 +516,19 @@ app.get("/dashboard/:guildId/custom", requireLogin, requireGuildAdmin, (req, res
   }
 
   const commands = Object.entries(cfg.customCommands)
-  .map(([cmd, data]) => {
-    const response = typeof data === "string" ? data : data.response;
-    const allowPings = typeof data === "object" && data.allowPings;
+    .map(([cmd, data]) => {
+      const response = typeof data === "string" ? data : data.response;
+      const allowPings = typeof data === "object" && data.allowPings;
 
-    return `
-      <div class="warn-box">
-        <b>Command:</b> ${escapeHtml(cmd)}<br/>
-        <b>Response:</b> ${escapeHtml(response)}<br/>
-        <b>Pings:</b> ${allowPings ? "Allowed" : "Disabled"}
-      </div>
-    `;
-  })
-  .join("");
+      return `
+        <div class="warn-box">
+          <b>Command:</b> ${escapeHtml(cmd)}<br/>
+          <b>Response:</b> ${escapeHtml(response)}<br/>
+          <b>Pings:</b> ${allowPings ? "Allowed" : "Disabled"}
+        </div>
+      `;
+    })
+    .join("");
 
   res.send(renderPage({
     req,
@@ -551,14 +549,14 @@ app.get("/dashboard/:guildId/custom", requireLogin, requireGuildAdmin, (req, res
           </div>
           <br/>
           <div class="row">
-  <input type="text" name="response" placeholder="Hello there!" required />
-  <button type="submit">Add</button>
-</div>
-<br/>
-<label class="check">
-  <input type="checkbox" name="allowPings" />
-  Allow pings in response
-</label>
+            <input type="text" name="response" placeholder="Hello there!" required />
+            <button type="submit">Add</button>
+          </div>
+          <br/>
+          <label class="check">
+            <input type="checkbox" name="allowPings" />
+            Allow pings in response
+          </label>
         </form>
       </div>
 
@@ -588,9 +586,10 @@ app.post("/dashboard/:guildId/custom/add", requireLogin, requireGuildAdmin, (req
       }
 
       cfg.customCommands[command] = {
-  response,
-  allowPings: !!req.body.allowPings
-};
+        response,
+        allowPings: !!req.body.allowPings
+      };
+    });
   }
 
   res.redirect(`/dashboard/${req.params.guildId}/custom`);
