@@ -36,6 +36,33 @@ const BLOCKED_LINKS = [
 
 let client;
 
+const CORE_BLACKLIST = [
+  "ass",
+  "nigga",
+  "nigger",
+  "nga",
+  "idiot",
+  "retard",
+  "faggot",
+  "fagot",
+  "porn",
+  "sex",
+  "pussy",
+  "boobs",
+  "penis",
+  "dick",
+  "fuck",
+  "idgaf",
+  "motherfuck",
+  "motherfucker",
+  "mf",
+  "asshole",
+  "cunt",
+  "possay",
+  "sexcam",
+  "bubs"
+];
+
 // ================= DATA SAVE =================
 function loadData() {
   try {
