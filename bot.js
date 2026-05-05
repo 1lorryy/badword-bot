@@ -79,6 +79,8 @@ function saveData() {
 }
 
 function getGuildData(guildId) {
+  store = loadData();
+
   if (!store[guildId]) {
     store[guildId] = {
       prefix: DEFAULT_PREFIX,
