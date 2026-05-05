@@ -1,3 +1,4 @@
+const { handleBuyCommand } = require("./commands/buy");
 const { handleChannelToolsCommand } = require("./commands/channelTools");
 const { handleAfkCommand, handleAfkMentionsAndReturn } = require("./commands/afk");
 const { handleAuctionCommand } = require("./commands/auction");
@@ -144,18 +145,32 @@ function parseDuration(input) {
   return null;
 }
 
+function escapeRegex(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function containsBlacklistedWord(content, words) {
   const text = content.toLowerCase();
 
-  const word = words.find(w => w && text.includes(String(w).toLowerCase()));
-  if (word) return word;
+  for (const word of words) {
+    const clean = String(word).toLowerCase().trim();
+    if (!clean) continue;
+
+    const letters = clean
+      .split("")
+      .map(escapeRegex)
+      .join("[\\s._-]*");
+
+    const regex = new RegExp(`(^|[^a-z0-9])${letters}([^a-z0-9]|$)`, "i");
+
+    if (regex.test(text)) return word;
+  }
 
   const link = BLOCKED_LINKS.find(l => text.includes(l));
   if (link) return link;
 
   return null;
 }
-
 async function sendAutomodLog(message, word) {
   const log = await message.guild.channels.fetch(LOG_CHANNEL_ID).catch(() => null);
   if (!log || !log.isTextBased()) return;
@@ -192,6 +207,9 @@ async function handleCommands(message) {
   if (!command) return true;
 
   // ================= AFK / AUCTION / CHANNEL TOOLS =================
+  if (command === "purchase") {
+  return handleBuyCommand(message, args, prefix, canManageGuild);
+}
   if (command === "afk") return handleAfkCommand(message, args, prefix);
   if (command === "auction") return handleAuctionCommand(message, args, prefix);
   if (command === "bid") return handleAuctionCommand(message, ["bid", ...args], prefix);
@@ -559,7 +577,7 @@ async function handleCommands(message) {
       .setDescription(`Prefix: \`${prefix}\``)
       .addFields(
         { name: "🛡️ Moderation", value: `\`${prefix}warn\` • \`${prefix}mute\` • \`${prefix}ban\` • \`${prefix}warnings\` • \`${prefix}unwarn\` • \`${prefix}unmute\` • \`${prefix}unban\` • \`${prefix}purge\``, inline: false },
-        { name: "⚙️ Server", value: `\`${prefix}setprefix\` • \`${prefix}role\``, inline: false },
+        { name: "⚙️ Server", value: `\`${prefix}setprefix\` • \`${prefix}role\` • \`${prefix}purchase\``, inline: false },
         { name: "🚫 AutoMod", value: `\`${prefix}bl\` • \`${prefix}unbl\` • \`${prefix}words\``, inline: false },
         { name: "🏆 Auction", value: `\`${prefix}auction start\` • \`${prefix}bid\` • \`${prefix}auction end\``, inline: false },
         { name: "🔒 Channels", value: `\`${prefix}lock\` • \`${prefix}unlock\` • \`${prefix}slowmode\``, inline: false },

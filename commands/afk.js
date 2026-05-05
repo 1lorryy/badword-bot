@@ -61,11 +61,11 @@ async function handleAfkMentionsAndReturn(message, prefix) {
     }
 
     const pingList = authorAfk.pings.length
-      ? authorAfk.pings
-          .slice(-5)
-          .map((p, i) => `${i + 1}. ${p.authorTag} — [jump](${p.url})`)
-          .join("\n")
-      : "NOBODY PINGED U - CRY ABOUT IT";
+  ? authorAfk.pings
+      .map((p, i) => `${i + 1}. ${p.authorTag} — [jump](${p.url})`)
+      .join("\n")
+      .slice(0, 1000)
+  : "NOBODY PINGED U - CRY ABOUT IT";
 
     await message.reply({
   embeds: [
@@ -104,7 +104,6 @@ async function handleAfkMentionsAndReturn(message, prefix) {
       time: Date.now()
     });
 
-    if (data.pings.length > 10) data.pings.shift();
 
     const member = message.guild.members.cache.get(user.id);
     const displayName = member ? member.displayName : user.username;
