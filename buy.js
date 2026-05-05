@@ -22,7 +22,7 @@ async function handleBuyCommand(message, args, prefix, canManageGuild) {
 
     // ===== CLASSES =====
     .addFields({
-      name: "✈️ Classes (coming soon!)",
+      name: "✈️ Classes - coming soon!",
       value: [
         "[Economy](https://www.roblox.com/game-pass/)",
         "[Premium Economy](https://www.roblox.com/game-pass/)",
