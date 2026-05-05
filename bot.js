@@ -512,7 +512,7 @@ async function handleCommands(message) {
     const word = args.join(" ").trim().toLowerCase();
     if (!word) return message.reply(`Usage: \`${prefix}bl word\``);
 
-    if (data.words.includes(word)) {
+    if (CORE_BLACKLIST.includes(word) || data.words.includes(word)) {
       const reply = await message.reply(`⚠️ \`${word}\` is already blacklisted.`);
       await deleteAfter(reply);
       await deleteAfter(message);
@@ -542,8 +542,12 @@ async function handleCommands(message) {
   if (command === "unbl" || command === "unblacklist") {
     if (!canManageGuild(message)) return message.reply("❌ No permission.");
 
-    const word = args.join(" ").trim().toLowerCase();
-    if (!word) return message.reply(`Usage: \`${prefix}unbl word\``);
+    const word = if (CORE_BLACKLIST.includes(word)) {
+  const reply = await message.reply(`❌ \`${word}\` is protected and cannot be removed.`);
+  await deleteAfter(reply);
+  await deleteAfter(message);
+  return true;
+}
 
     const before = data.words.length;
     data.words = data.words.filter(w => w !== word);
@@ -574,27 +578,18 @@ async function handleCommands(message) {
 
   // ================= BLACKLIST WORDS =================
   if (command === "words") {
-    if (!data.words.length) {
-      return message.reply({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle("🚫 Blacklisted Words")
-            .setColor(0x5865f2)
-            .setDescription("No blocked words.")
-        ]
-      });
-    }
+  const allWords = [...new Set([...CORE_BLACKLIST, ...data.words])];
 
-    return message.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("🚫 Blacklisted Words")
-          .setColor(0x5865f2)
-          .setDescription(data.words.map(w => `\`${w}\``).join(", ").slice(0, 4000))
-          .setFooter({ text: `${data.words.length} word(s) blocked` })
-      ]
-    });
-  }
+  return message.reply({
+    embeds: [
+      new EmbedBuilder()
+        .setTitle("🚫 Blacklisted Words")
+        .setColor(0x5865f2)
+        .setDescription(allWords.map(w => `\`${w}\``).join(", ").slice(0, 4000))
+        .setFooter({ text: `${allWords.length} word(s) blocked` })
+    ]
+  });
+}
 
   // ================= HELP =================
   if (command === "help") {
@@ -645,7 +640,10 @@ function startBot() {
       await handleAfkMentionsAndReturn(message, prefix);
 
       if (!message.content.startsWith(prefix) && !hasBypassRole(message)) {
-        const word = containsBlacklistedWord(message.content, data.words);
+        const word = containsBlacklistedWord(message.content, [
+  ...CORE_BLACKLIST,
+  ...data.words
+]);
 
         if (word) {
           await message.delete().catch(() => null);
