@@ -15,7 +15,7 @@ const {
 const app = express();
 const PORT = Number(process.env.WEB_PORT || 3000);
 const CREATOR_DISCORD_ID = process.env.CREATOR_DISCORD_ID || "419893791844204546";
-const CSS_PATH = path.join(__dirname, "dashboard.css");
+const CSS_PATH = path.join(__dirname, "dashboard", "dashboard.css");
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
