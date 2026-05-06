@@ -383,6 +383,45 @@ if (data.customCommands && data.customCommands[command]) {
     return message.reply(`✅ Removed warning \`${warnId}\``);
   }
 
+  // ================= SETNICK =================
+  if (command === "setnick") {
+    if (!canManageGuild(message)) return message.reply("❌ No permission.");
+
+    if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageNicknames)) {
+      return message.reply("❌ I need Manage Nicknames permission.");
+    }
+
+    const member = await findTargetMember(message, args);
+    if (!member) return message.reply(`Usage: \`${prefix}setnick @user new nickname\``);
+
+    if (!member.manageable) {
+      return message.reply("❌ I cannot change this user's nickname. Their role may be higher than mine.");
+    }
+
+    const newNick = message.reference
+      ? args.join(" ").trim()
+      : args.slice(1).join(" ").trim();
+
+    if (!newNick) return message.reply(`Usage: \`${prefix}setnick @user new nickname\``);
+    if (newNick.length > 32) return message.reply("❌ Nickname max length is 32 characters.");
+
+    await member.setNickname(newNick, `Changed by ${message.author.tag}`);
+
+    const embed = new EmbedBuilder()
+      .setTitle("✏️ Nickname Changed")
+      .setColor(0x5865f2)
+      .addFields(
+        { name: "User", value: `${member.user.tag}`, inline: true },
+        { name: "Moderator", value: `${message.author.tag}`, inline: true },
+        { name: "New Nickname", value: newNick, inline: false }
+      )
+      .setTimestamp();
+
+    await sendModLog(embed);
+
+    return message.reply(`✅ Changed nickname for ${member.user.tag} to **${newNick}**`);
+  }
+
   // ================= MUTE =================
   if (command === "mute" || command === "timeout") {
     if (!canManageGuild(message)) return message.reply("❌ No permission.");
@@ -440,6 +479,13 @@ if (data.customCommands && data.customCommands[command]) {
     }
 
     const member = await findTargetMember(message, args);
+if (member.id === message.author.id) {
+  return message.reply("❌ You can’t kick yourself, noob.");
+}
+
+if (member.id === message.guild.ownerId) {
+  return message.reply("❌ You can’t kick the server owner.");
+}
     if (!member) return message.reply(`Usage: \`${prefix}kick @user reason\``);
 
     if (!member.kickable) {
@@ -476,6 +522,13 @@ if (data.customCommands && data.customCommands[command]) {
     }
 
     const member = await findTargetMember(message, args);
+if (member.id === message.author.id) {
+  return message.reply("❌ You can’t ban yourself, noob.");
+}
+
+if (member.id === message.guild.ownerId) {
+  return message.reply("❌ You can’t ban the server owner.");
+}
     if (!member) return message.reply(`Usage: \`${prefix}ban @user reason\``);
 
     const reason = message.reference
