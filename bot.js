@@ -1,3 +1,12 @@
+function isStaffMember(member) {
+  return (
+    member.roles.cache.has(STAFF_ROLE_ID) ||
+    member.roles.cache.has(MOD_ROLE_ID) ||
+    member.roles.cache.has(MAIN_ADMIN_ROLE_ID) ||
+    member.permissions.has(PermissionsBitField.Flags.Administrator)
+  );
+}
+
 const { handleBuyCommand } = require("./commands/buy");
 const { handleChannelToolsCommand } = require("./commands/channelTools");
 const { handleAfkCommand, handleAfkMentionsAndReturn } = require("./commands/afk");
@@ -485,20 +494,21 @@ if (command === "kick") {
     return message.reply(`Usage: \`${prefix}kick @user reason\``);
   }
 
-  // ❌ Prevent self-kick
   if (member.id === message.author.id) {
-    return message.reply("❌ You can’t kick yourself, noob.");
-  }
+  return message.reply("❌ You really tried to kick yourself? 💀 rage quit manually bro.");
+}
 
-  // ❌ Prevent kicking owner
-  if (member.id === message.guild.ownerId) {
-    return message.reply("❌ You can’t kick the server owner.");
-  }
+if (member.id === message.guild.ownerId) {
+  return message.reply("❌ That’s the server owner… they built this place 😭 you’re not evicting them.");
+}
 
-  // ❌ Prevent kicking higher roles
-  if (!member.kickable) {
-    return message.reply("❌ I cannot kick this user. Their role may be higher than mine.");
-  }
+if (isStaffMember(member)) {
+  return message.reply("❌ Kicking staff? That’s a bold strategy… let’s not 😎");
+}
+
+if (!member.kickable) {
+  return message.reply("❌ I tried… but they’re basically untouchable 😔 (role too high)");
+}
 
   const reason = message.reference
     ? args.join(" ") || "No reason"
@@ -514,13 +524,8 @@ if (command === "kick") {
     )
     .setTimestamp();
 
-  // Try DM
   await member.send({ embeds: [embed] }).catch(() => null);
-
-  // Kick
   await member.kick(reason);
-
-  // Log
   await sendModLog(embed);
 
   return message.reply(`👢 Kicked ${member.user.tag}`);
@@ -541,20 +546,21 @@ if (command === "ban") {
     return message.reply(`Usage: \`${prefix}ban @user reason\``);
   }
 
-  // ❌ Prevent self-ban
   if (member.id === message.author.id) {
-    return message.reply("❌ You can’t ban yourself, noob.");
-  }
+  return message.reply("❌ Bro really tried to ban themselves 💀 self-destruct not available.");
+}
 
-  // ❌ Prevent banning owner
-  if (member.id === message.guild.ownerId) {
-    return message.reply("❌ You can’t ban the server owner.");
-  }
+if (member.id === message.guild.ownerId) {
+  return message.reply("❌ That's the boss... you don’t fire the CEO 😭");
+}
 
-  // ❌ Prevent banning higher roles / not bannable
-  if (!member.bannable) {
-    return message.reply("❌ I can't ban this user (role too high).");
-  }
+if (isStaffMember(member)) {
+  return message.reply("❌ Woah there, you’re trying to ban the staff? Bold move… denied 😎");
+}
+
+if (!member.bannable) {
+  return message.reply("❌ Their power level is over 9000… I can’t ban them 🤖");
+}
 
   const reason = message.reference
     ? args.join(" ") || "No reason"
@@ -570,13 +576,8 @@ if (command === "ban") {
     )
     .setTimestamp();
 
-  // Try DM (ignore if fails)
   await member.send({ embeds: [embed] }).catch(() => null);
-
-  // Ban user
   await member.ban({ reason });
-
-  // Log
   await sendModLog(embed);
 
   return message.reply(`🔨 Banned ${member.user.tag}`);
