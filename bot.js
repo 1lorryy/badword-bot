@@ -471,86 +471,116 @@ if (data.customCommands && data.customCommands[command]) {
   }
 
   // ================= KICK =================
-  if (command === "kick") {
-    if (!canManageGuild(message)) return message.reply("❌ No permission.");
-
-    if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.KickMembers)) {
-      return message.reply("I need Kick Members permission.");
-    }
-
-    const member = await findTargetMember(message, args);
-if (member.id === message.author.id) {
-  return message.reply("❌ You can’t kick yourself, noob.");
-}
-
-if (member.id === message.guild.ownerId) {
-  return message.reply("❌ You can’t kick the server owner.");
-}
-    if (!member) return message.reply(`Usage: \`${prefix}kick @user reason\``);
-
-    if (!member.kickable) {
-      return message.reply("❌ I cannot kick this user. Their role may be higher than mine.");
-    }
-
-    const reason = message.reference
-      ? args.join(" ") || "No reason"
-      : args.slice(1).join(" ") || "No reason";
-
-    const embed = new EmbedBuilder()
-      .setTitle("👢 User Kicked")
-      .setColor(0xef4444)
-      .addFields(
-        { name: "User", value: `${member.user.tag}`, inline: true },
-        { name: "Moderator", value: `${message.author.tag}`, inline: true },
-        { name: "Reason", value: reason, inline: false }
-      )
-      .setTimestamp();
-
-    await member.send({ embeds: [embed] }).catch(() => null);
-    await member.kick(reason);
-    await sendModLog(embed);
-
-    return message.reply(`👢 Kicked ${member.user.tag}`);
+if (command === "kick") {
+  if (!canManageGuild(message)) {
+    return message.reply("❌ No permission.");
   }
+
+  if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.KickMembers)) {
+    return message.reply("❌ I need Kick Members permission.");
+  }
+
+  const member = await findTargetMember(message, args);
+  if (!member) {
+    return message.reply(`Usage: \`${prefix}kick @user reason\``);
+  }
+
+  // ❌ Prevent self-kick
+  if (member.id === message.author.id) {
+    return message.reply("❌ You can’t kick yourself, noob.");
+  }
+
+  // ❌ Prevent kicking owner
+  if (member.id === message.guild.ownerId) {
+    return message.reply("❌ You can’t kick the server owner.");
+  }
+
+  // ❌ Prevent kicking higher roles
+  if (!member.kickable) {
+    return message.reply("❌ I cannot kick this user. Their role may be higher than mine.");
+  }
+
+  const reason = message.reference
+    ? args.join(" ") || "No reason"
+    : args.slice(1).join(" ") || "No reason";
+
+  const embed = new EmbedBuilder()
+    .setTitle("👢 User Kicked")
+    .setColor(0xef4444)
+    .addFields(
+      { name: "User", value: `${member.user.tag}`, inline: true },
+      { name: "Moderator", value: `${message.author.tag}`, inline: true },
+      { name: "Reason", value: reason, inline: false }
+    )
+    .setTimestamp();
+
+  // Try DM
+  await member.send({ embeds: [embed] }).catch(() => null);
+
+  // Kick
+  await member.kick(reason);
+
+  // Log
+  await sendModLog(embed);
+
+  return message.reply(`👢 Kicked ${member.user.tag}`);
+}
 
   // ================= BAN =================
-  if (command === "ban") {
-    if (!canBanUsers(message)) return message.reply("❌ Only admin+ can ban.");
-
-    if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-      return message.reply("I need Ban Members permission.");
-    }
-
-    const member = await findTargetMember(message, args);
-if (member.id === message.author.id) {
-  return message.reply("❌ You can’t ban yourself, noob.");
-}
-
-if (member.id === message.guild.ownerId) {
-  return message.reply("❌ You can’t ban the server owner.");
-}
-    if (!member) return message.reply(`Usage: \`${prefix}ban @user reason\``);
-
-    const reason = message.reference
-      ? args.join(" ") || "No reason"
-      : args.slice(1).join(" ") || "No reason";
-
-    const embed = new EmbedBuilder()
-      .setTitle("🔨 User Banned")
-      .setColor(0xef4444)
-      .addFields(
-        { name: "User", value: `${member.user.tag}`, inline: true },
-        { name: "Moderator", value: `${message.author.tag}`, inline: true },
-        { name: "Reason", value: reason, inline: false }
-      )
-      .setTimestamp();
-
-    await member.send({ embeds: [embed] }).catch(() => null);
-    await member.ban({ reason });
-    await sendModLog(embed);
-
-    return message.reply(`🔨 Banned ${member.user.tag}`);
+if (command === "ban") {
+  if (!canBanUsers(message)) {
+    return message.reply("❌ Only admin+ can ban.");
   }
+
+  if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.BanMembers)) {
+    return message.reply("❌ I need Ban Members permission.");
+  }
+
+  const member = await findTargetMember(message, args);
+  if (!member) {
+    return message.reply(`Usage: \`${prefix}ban @user reason\``);
+  }
+
+  // ❌ Prevent self-ban
+  if (member.id === message.author.id) {
+    return message.reply("❌ You can’t ban yourself, noob.");
+  }
+
+  // ❌ Prevent banning owner
+  if (member.id === message.guild.ownerId) {
+    return message.reply("❌ You can’t ban the server owner.");
+  }
+
+  // ❌ Prevent banning higher roles / not bannable
+  if (!member.bannable) {
+    return message.reply("❌ I can't ban this user (role too high).");
+  }
+
+  const reason = message.reference
+    ? args.join(" ") || "No reason"
+    : args.slice(1).join(" ") || "No reason";
+
+  const embed = new EmbedBuilder()
+    .setTitle("🔨 User Banned")
+    .setColor(0xef4444)
+    .addFields(
+      { name: "User", value: `${member.user.tag}`, inline: true },
+      { name: "Moderator", value: `${message.author.tag}`, inline: true },
+      { name: "Reason", value: reason, inline: false }
+    )
+    .setTimestamp();
+
+  // Try DM (ignore if fails)
+  await member.send({ embeds: [embed] }).catch(() => null);
+
+  // Ban user
+  await member.ban({ reason });
+
+  // Log
+  await sendModLog(embed);
+
+  return message.reply(`🔨 Banned ${member.user.tag}`);
+}
 
   // ================= UNBAN =================
   if (command === "unban") {
