@@ -853,7 +853,71 @@ function startBot() {
       // ================= NORMAL COMMANDS =================
       const usedCommand = await handleCommands(message);
 
-      // ================= CUSTOM COMMANDS =================
+// ================= BOT START =================
+function startBot() {
+  client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.MessageContent
+    ]
+  });
+
+  client.once("ready", async () => {
+    console.log(`Ready as ${client.user.tag}`);
+
+    for (const guild of client.guilds.cache.values()) {
+      const me = guild.members.me;
+
+      if (!me?.permissions.has(PermissionsBitField.Flags.ManageNicknames)) continue;
+
+      const members = await guild.members.fetch().catch(() => null);
+      if (!members) continue;
+
+      for (const member of members.values()) {
+        if (member.user.bot) continue;
+        if (!member.manageable) continue;
+
+        const nick = member.nickname;
+        if (!nick || !nick.startsWith("[AFK] ")) continue;
+
+        const cleanNick = nick.replace(/^\[AFK\]\s*/i, "").slice(0, 32);
+
+        await member
+          .setNickname(cleanNick || null, "Bot restarted - clearing AFK nickname")
+          .catch(() => null);
+      }
+    }
+  });
+
+  client.on("messageCreate", async (message) => {
+    try {
+      if (message.author.bot) return;
+      if (!message.guild) return;
+      if (!message.content) return;
+
+      const data = getGuildData(message.guild.id);
+      const prefix = data.prefix || DEFAULT_PREFIX;
+
+      await handleAfkMentionsAndReturn(message, prefix);
+
+      if (!message.content.startsWith(prefix) && !hasBypassRole(message)) {
+        const word = containsBlacklistedWord(message.content, [
+          ...CORE_BLACKLIST,
+          ...data.words,
+          ...(data.blockedLinks || [])
+        ]);
+
+        if (word) {
+          await message.delete().catch(() => null);
+          await sendAutomodLog(message, word);
+          return;
+        }
+      }
+
+      const usedCommand = await handleCommands(message);
+
       if (!usedCommand) {
         const freshData = getGuildData(message.guild.id);
         const msg = message.content.toLowerCase().trim();
@@ -865,12 +929,6 @@ function startBot() {
         ) {
           const custom = freshData.customCommands[msg];
 
-          // Supports old format:
-          // "hello"
-          //
-          // Supports new format:
-          // { response: "hello", allowPings: true }
-
           const response =
             typeof custom === "string"
               ? custom
@@ -880,7 +938,6 @@ function startBot() {
             typeof custom === "object" &&
             custom.allowPings === true;
 
-          // Reply + ping user
           if (allowPings) {
             return message.reply({
               content: response,
@@ -890,7 +947,6 @@ function startBot() {
             });
           }
 
-          // Normal message without ping
           return message.channel.send({
             content: response,
             allowedMentions: {
