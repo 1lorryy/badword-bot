@@ -13,7 +13,7 @@ const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const CALLBACK_URL = process.env.CALLBACK_URL || "http://localhost:3000/callback";
 const SESSION_SECRET = process.env.SESSION_SECRET || "change-this-secret";
 
-const DATA_FILE = path.join(__dirname, "guild-data.json");
+const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, "guild-data.json");
 const CSS_PATH = path.join(__dirname, "dashboard", "dashboard.css");
 
 const DEFAULT_PREFIX = "?";
@@ -59,6 +59,7 @@ function loadData() {
 }
 
 function saveData(data) {
+  fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
