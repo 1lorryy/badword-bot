@@ -258,16 +258,38 @@ async function handleCommands(message) {
 // ================= CUSTOM COMMANDS =================
 if (data.customCommands && data.customCommands[command]) {
   const custom = data.customCommands[command];
-  const response = typeof custom === "string" ? custom : custom.response;
-  const allowPings = typeof custom === "object" && custom.allowPings;
 
+  // supports old + new format
+  const response =
+    typeof custom === "string"
+      ? custom
+      : custom.response || "No response set.";
+
+  const allowPings =
+    typeof custom === "object" && custom.allowPings === true;
+
+  // if pinging allowed -> reply to user
+  if (allowPings) {
+    return message.reply({
+      content: response,
+      allowedMentions: {
+        repliedUser: true,
+        parse: ["users", "roles", "everyone"]
+      }
+    });
+  }
+
+  // if pinging disabled -> normal message without ping
   return message.channel.send({
     content: response,
-    allowedMentions: allowPings ? undefined : { parse: [] }
+    allowedMentions: {
+      repliedUser: false,
+      parse: []
+    }
   });
 }
 
-// keep the rest of your normal commands here...
+// keep normal commands below
 
   // ================= AFK / AUCTION / CHANNEL TOOLS =================
   if (command === "purchase") return handleBuyCommand(message, args, prefix, canManageGuild);
