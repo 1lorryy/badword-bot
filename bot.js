@@ -13,7 +13,7 @@ const {
   EmbedBuilder,
 } = require("discord.js");
 
-const DATA_FILE = path.join(__dirname, "guild-data.json");
+const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, "guild-data.json");
 
 const DEFAULT_PREFIX = process.env.DEFAULT_PREFIX || "?";
 const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID || "1492845794192134245";
@@ -77,6 +77,7 @@ function loadData() {
 let store = loadData();
 
 function saveData() {
+  fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
   fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2));
 }
 
