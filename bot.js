@@ -265,22 +265,19 @@ async function handleCommands(message) {
   const command = (args.shift() || "").toLowerCase();
   if (!command) return true;
 
-// ================= CUSTOM COMMANDS =================
-if (data.customCommands && data.customCommands[command]) {
+/// ================= CUSTOM COMMANDS =================
+if (data.customCommands?.[command]) {
   const custom = data.customCommands[command];
 
-  // Supports old format: "hello"
-  // Supports new format: { response: "hello", allowPings: true }
   const response =
     typeof custom === "string"
       ? custom
       : custom.response || "No response set.";
 
   const allowPings =
-    typeof custom === "object" && custom.allowPings === true;
+    typeof custom === "object" &&
+    custom.allowPings === true;
 
-  // Allow pings ON:
-  // Bot replies to the user's message, which pings them.
   if (allowPings) {
     return message.reply({
       content: response,
@@ -290,8 +287,6 @@ if (data.customCommands && data.customCommands[command]) {
     });
   }
 
-  // Allow pings OFF:
-  // Bot sends normal message, no reply, no ping.
   return message.channel.send({
     content: response,
     allowedMentions: {
@@ -880,11 +875,7 @@ function startBot() {
         const freshData = getGuildData(message.guild.id);
         const msg = message.content.toLowerCase().trim();
 
-        const custom =
-          freshData.customCommands &&
-          typeof freshData.customCommands === "object"
-            ? freshData.customCommands[msg]
-            : null;
+        const custom = freshData.customCommands?.[msg];
 
         if (custom) {
           const response =
