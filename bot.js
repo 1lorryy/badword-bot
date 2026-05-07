@@ -244,22 +244,12 @@ async function sendModLog(embed) {
   await log.send({ embeds: [embed] }).catch(() => null);
 }
 
-// ================= COMMANDS =================
-async function handleCommands(message) {
-  const data = getGuildData(message.guild.id);
-  const prefix = data.prefix || DEFAULT_PREFIX;
-
-  if (!message.content.startsWith(prefix)) return false;
-
-  const args = message.content.slice(prefix.length).trim().split(/\s+/);
-  const command = (args.shift() || "").toLowerCase();
-  if (!command) return true;
-
 // ================= CUSTOM COMMANDS =================
 if (data.customCommands && data.customCommands[command]) {
   const custom = data.customCommands[command];
 
-  // supports old + new format
+  // Supports old format: "hello"
+  // Supports new format: { response: "hello", allowPings: true }
   const response =
     typeof custom === "string"
       ? custom
@@ -268,28 +258,26 @@ if (data.customCommands && data.customCommands[command]) {
   const allowPings =
     typeof custom === "object" && custom.allowPings === true;
 
-  // if pinging allowed -> reply to user
+  // Allow pings ON:
+  // Bot replies to the user's message, which pings them.
   if (allowPings) {
     return message.reply({
       content: response,
       allowedMentions: {
-        repliedUser: true,
-        parse: ["users", "roles", "everyone"]
+        repliedUser: true
       }
     });
   }
 
-  // if pinging disabled -> normal message without ping
+  // Allow pings OFF:
+  // Bot sends normal message, no reply, no ping.
   return message.channel.send({
     content: response,
     allowedMentions: {
-      repliedUser: false,
       parse: []
     }
   });
 }
-
-// keep normal commands below
 
   // ================= AFK / AUCTION / CHANNEL TOOLS =================
   if (command === "purchase") return handleBuyCommand(message, args, prefix, canManageGuild);
@@ -809,9 +797,32 @@ function startBot() {
     ]
   });
 
-  client.once("ready", () => {
-    console.log(`Ready as ${client.user.tag}`);
-  });
+  client.once("ready", async () => {
+  console.log(`Ready as ${client.user.tag}`);
+
+  for (const guild of client.guilds.cache.values()) {
+    const me = guild.members.me;
+
+    if (!me?.permissions.has(PermissionsBitField.Flags.ManageNicknames)) continue;
+
+    const members = await guild.members.fetch().catch(() => null);
+    if (!members) continue;
+
+    for (const member of members.values()) {
+      if (member.user.bot) continue;
+      if (!member.manageable) continue;
+
+      const nick = member.nickname;
+      if (!nick || !nick.startsWith("[AFK] ")) continue;
+
+      const cleanNick = nick.replace(/^\[AFK\]\s*/i, "").slice(0, 32);
+
+      await member
+        .setNickname(cleanNick || null, "Bot restarted - clearing AFK nickname")
+        .catch(() => null);
+    }
+  }
+});
 
   client.on("messageCreate", async (message) => {
     try {
@@ -824,6 +835,7 @@ function startBot() {
 
       await handleAfkMentionsAndReturn(message, prefix);
 
+      // ================= AUTOMOD =================
       if (!message.content.startsWith(prefix) && !hasBypassRole(message)) {
         const word = containsBlacklistedWord(message.content, [
           ...CORE_BLACKLIST,
@@ -838,8 +850,10 @@ function startBot() {
         }
       }
 
+      // ================= NORMAL COMMANDS =================
       const usedCommand = await handleCommands(message);
 
+      // ================= CUSTOM COMMANDS =================
       if (!usedCommand) {
         const freshData = getGuildData(message.guild.id);
         const msg = message.content.toLowerCase().trim();
@@ -850,12 +864,38 @@ function startBot() {
           freshData.customCommands[msg]
         ) {
           const custom = freshData.customCommands[msg];
-          const response = typeof custom === "string" ? custom : custom.response;
-          const allowPings = typeof custom === "object" && custom.allowPings;
 
+          // Supports old format:
+          // "hello"
+          //
+          // Supports new format:
+          // { response: "hello", allowPings: true }
+
+          const response =
+            typeof custom === "string"
+              ? custom
+              : custom.response || "No response set.";
+
+          const allowPings =
+            typeof custom === "object" &&
+            custom.allowPings === true;
+
+          // Reply + ping user
+          if (allowPings) {
+            return message.reply({
+              content: response,
+              allowedMentions: {
+                repliedUser: true
+              }
+            });
+          }
+
+          // Normal message without ping
           return message.channel.send({
             content: response,
-            allowedMentions: allowPings ? undefined : { parse: [] }
+            allowedMentions: {
+              parse: []
+            }
           });
         }
       }
