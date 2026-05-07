@@ -137,6 +137,25 @@ function isStaffMember(member) {
   );
 }
 
+function canBanUsers(message) {
+  if (!message.member) return false;
+  const roles = message.member.roles.cache;
+
+  return (
+    message.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
+    roles.has(MAIN_ADMIN_ROLE_ID)
+  );
+}
+
+function isStaffMember(member) {
+  return (
+    member.roles.cache.has(STAFF_ROLE_ID) ||
+    member.roles.cache.has(MOD_ROLE_ID) ||
+    member.roles.cache.has(MAIN_ADMIN_ROLE_ID) ||
+    member.permissions.has(PermissionsBitField.Flags.Administrator)
+  );
+}
+
 function hasBypassRole(message) {
   return !!(BYPASS_ROLE_ID && message.member?.roles?.cache?.has(BYPASS_ROLE_ID));
 }
