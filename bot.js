@@ -1,12 +1,3 @@
-function isStaffMember(member) {
-  return (
-    member.roles.cache.has(STAFF_ROLE_ID) ||
-    member.roles.cache.has(MOD_ROLE_ID) ||
-    member.roles.cache.has(MAIN_ADMIN_ROLE_ID) ||
-    member.permissions.has(PermissionsBitField.Flags.Administrator)
-  );
-}
-
 const { handleBuyCommand } = require("./commands/buy");
 const { handleChannelToolsCommand } = require("./commands/channelTools");
 const { handleAfkCommand, handleAfkMentionsAndReturn } = require("./commands/afk");
@@ -24,8 +15,8 @@ const {
 
 const DATA_FILE = path.join(__dirname, "guild-data.json");
 
-const DEFAULT_PREFIX = "?";
-const LOG_CHANNEL_ID = "1492845794192134245";
+const DEFAULT_PREFIX = process.env.DEFAULT_PREFIX || "?";
+const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID || "1492845794192134245";
 const BYPASS_ROLE_ID = process.env.BYPASS_ROLE_ID || "";
 
 const STAFF_ROLE_ID = "1481370041420087474";
@@ -136,13 +127,12 @@ function canManageGuild(message) {
   );
 }
 
-function canBanUsers(message) {
-  if (!message.member) return false;
-  const roles = message.member.roles.cache;
-
+function isStaffMember(member) {
   return (
-    message.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
-    roles.has(MAIN_ADMIN_ROLE_ID)
+    member.roles.cache.has(STAFF_ROLE_ID) ||
+    member.roles.cache.has(MOD_ROLE_ID) ||
+    member.roles.cache.has(MAIN_ADMIN_ROLE_ID) ||
+    member.permissions.has(PermissionsBitField.Flags.Administrator)
   );
 }
 
@@ -243,6 +233,17 @@ async function sendModLog(embed) {
   if (!log || !log.isTextBased()) return;
   await log.send({ embeds: [embed] }).catch(() => null);
 }
+
+// ================= COMMANDS =================
+async function handleCommands(message) {
+  const data = getGuildData(message.guild.id);
+  const prefix = data.prefix || DEFAULT_PREFIX;
+
+  if (!message.content.startsWith(prefix)) return false;
+
+  const args = message.content.slice(prefix.length).trim().split(/\s+/);
+  const command = (args.shift() || "").toLowerCase();
+  if (!command) return true;
 
 // ================= CUSTOM COMMANDS =================
 if (data.customCommands && data.customCommands[command]) {
