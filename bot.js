@@ -821,6 +821,7 @@ function startBot() {
   client.once("ready", async () => {
     console.log(`Ready as ${client.user.tag}`);
 
+    // Clear stuck [AFK] nicknames after bot restart
     for (const guild of client.guilds.cache.values()) {
       const me = guild.members.me;
 
@@ -856,6 +857,7 @@ function startBot() {
 
       await handleAfkMentionsAndReturn(message, prefix);
 
+      // ================= AUTOMOD =================
       if (!message.content.startsWith(prefix) && !hasBypassRole(message)) {
         const word = containsBlacklistedWord(message.content, [
           ...CORE_BLACKLIST,
@@ -870,19 +872,21 @@ function startBot() {
         }
       }
 
+      // ================= PREFIX COMMANDS =================
       const usedCommand = await handleCommands(message);
 
+      // ================= CUSTOM COMMANDS WITHOUT PREFIX =================
       if (!usedCommand) {
         const freshData = getGuildData(message.guild.id);
         const msg = message.content.toLowerCase().trim();
 
-        if (
+        const custom =
           freshData.customCommands &&
-          typeof freshData.customCommands === "object" &&
-          freshData.customCommands[msg]
-        ) {
-          const custom = freshData.customCommands[msg];
+          typeof freshData.customCommands === "object"
+            ? freshData.customCommands[msg]
+            : null;
 
+        if (custom) {
           const response =
             typeof custom === "string"
               ? custom
@@ -892,6 +896,7 @@ function startBot() {
             typeof custom === "object" &&
             custom.allowPings === true;
 
+          // Allow pings ON = reply + ping user
           if (allowPings) {
             return message.reply({
               content: response,
@@ -901,6 +906,7 @@ function startBot() {
             });
           }
 
+          // Allow pings OFF = normal message, no ping
           return message.channel.send({
             content: response,
             allowedMentions: {
