@@ -787,7 +787,7 @@ if (data.customCommands && Object.keys(data.customCommands).length) {
   embed.addFields({
     name: "💬 Custom Commands",
     value: Object.keys(data.customCommands)
-      .map(cmd => `\`${prefix}${cmd}\``)
+      .map(cmd => `\`${cmd}\` / \`${prefix}${cmd}\``)
       .join(" • ")
       .slice(0, 1000),
     inline: false
