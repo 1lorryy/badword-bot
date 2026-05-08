@@ -2,6 +2,7 @@ const { handleBuyCommand } = require("./commands/buy");
 const { handleChannelToolsCommand } = require("./commands/channelTools");
 const { handleAfkCommand, handleAfkMentionsAndReturn } = require("./commands/afk");
 const { handleAuctionCommand } = require("./commands/auction");
+const { handleModLogsCommand } = require("./commands/modlogs");
 
 const fs = require("fs");
 const path = require("path");
@@ -300,6 +301,7 @@ if (data.customCommands?.[command]) {
   if (command === "afk") return handleAfkCommand(message, args, prefix);
   if (command === "auction") return handleAuctionCommand(message, args, prefix);
   if (command === "bid") return handleAuctionCommand(message, ["bid", ...args], prefix);
+  if (command === "modlogs") return handleModLogsCommand(message, args, prefix, getGuildData);
 
   if (["slowmode", "lock", "unlock"].includes(command)) {
     return handleChannelToolsCommand(message, args, prefix, command, canManageGuild);
