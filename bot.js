@@ -500,7 +500,7 @@ if (data.customCommands?.[command]) {
     if (!durationMs) return message.reply("Use time like `10s`, `1min`, `1h`, `1d`.");
     if (durationMs > 14 * 24 * 60 * 60 * 1000) return message.reply("Max mute is 14 days.");
 
-    const reason = args.slice(1).join(" ") || "No reason";
+    const reason = args.slice(2).join(" ") || "No reason";
 
     await member.timeout(durationMs, reason);
 
