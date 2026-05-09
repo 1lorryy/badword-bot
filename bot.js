@@ -165,13 +165,6 @@ async function findTargetMember(message, args) {
   const mention = message.mentions.members.first();
   if (mention) return mention;
 
-  if (message.reference) {
-    const replied = await message.fetchReference().catch(() => null);
-    if (replied?.author) {
-      return await message.guild.members.fetch(replied.author.id).catch(() => null);
-    }
-  }
-
   const input = args[0];
   if (!input) return null;
 
@@ -346,9 +339,7 @@ if (data.customCommands?.[command]) {
     const member = await findTargetMember(message, args);
     if (!member) return message.reply(`Usage: \`${prefix}warn @user reason\``);
 
-    const reason = message.reference
-      ? args.join(" ") || "No reason"
-      : args.slice(1).join(" ") || "No reason";
+    const reason = args.slice(1).join(" ") || "No reason";
 
     const warnId = Date.now().toString();
 
@@ -470,15 +461,13 @@ if (data.customCommands?.[command]) {
     const member = await findTargetMember(message, args);
     if (!member) return message.reply(`Usage: \`${prefix}mute @user 1min reason\``);
 
-    const durationText = message.reference ? args[0] : args[1];
+    const durationText = args[1];
     const durationMs = parseDuration(durationText);
 
     if (!durationMs) return message.reply("Use time like `10s`, `1min`, `1h`, `1d`.");
     if (durationMs > 14 * 24 * 60 * 60 * 1000) return message.reply("Max mute is 14 days.");
 
-    const reason = message.reference
-      ? args.slice(1).join(" ") || "No reason"
-      : args.slice(2).join(" ") || "No reason";
+    const reason = args.slice(1).join(" ") || "No reason";
 
     await member.timeout(durationMs, reason);
 
@@ -538,9 +527,7 @@ if (!member.kickable) {
   return message.reply("❌ I tried… but they’re basically untouchable 😔 (role too high)");
 }
 
-  const reason = message.reference
-    ? args.join(" ") || "No reason"
-    : args.slice(1).join(" ") || "No reason";
+  const reason = args.slice(1).join(" ") || "No reason";
 
   const embed = new EmbedBuilder()
     .setTitle("👢 User Kicked")
@@ -590,9 +577,7 @@ if (!member.bannable) {
   return message.reply("❌ Their power level is over 9000… I can’t ban them 🤖");
 }
 
-  const reason = message.reference
-    ? args.join(" ") || "No reason"
-    : args.slice(1).join(" ") || "No reason";
+  const reason = args.slice(2).join(" ") || "No reason";
 
   const embed = new EmbedBuilder()
     .setTitle("🔨 User Banned")
@@ -778,7 +763,7 @@ if (!member.bannable) {
   .setDescription(`Prefix: \`${prefix}\``)
   .addFields(
     { name: "🛡️ Moderation", value: `\`${prefix}warn\` • \`${prefix}modlogs\` • \`${prefix}mute\` • \`${prefix}kick\` • \`${prefix}ban\` • \`${prefix}warnings\` • \`${prefix}unwarn\` • \`${prefix}unmute\` • \`${prefix}unban\` • \`${prefix}purge\``, inline: false },
-    { name: "⚙️ Server", value: `\`${prefix}setprefix\` • \`${prefix}role\` • \`${prefix}purchase\``, inline: false },
+    { name: "⚙️ Server", value: `\`${prefix}setprefix\` • \`${prefix}role\` • \`${prefix}setnick\` • \`${prefix}purchase\``, inline: false },
     { name: "🚫 AutoMod", value: `\`${prefix}bl\` • \`${prefix}unbl\` • \`${prefix}words\``, inline: false },
     { name: "🏆 Auction", value: `\`${prefix}auction start\` • \`${prefix}bid\` • \`${prefix}auction end\``, inline: false },
     { name: "🔒 Channels", value: `\`${prefix}lock\` • \`${prefix}unlock\` • \`${prefix}slowmode\``, inline: false },
