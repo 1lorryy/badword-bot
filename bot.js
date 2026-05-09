@@ -3,6 +3,7 @@ const { handleChannelToolsCommand } = require("./commands/channelTools");
 const { handleAfkCommand, handleAfkMentionsAndReturn } = require("./commands/afk");
 const { handleAuctionCommand } = require("./commands/auction");
 const { handleModLogsCommand } = require("./commands/modlogs");
+const { generateAiReply } = require("./commands/aiReply");
 
 const fs = require("fs");
 const path = require("path");
@@ -294,7 +295,24 @@ async function handleCommands(message) {
 
 /// ================= CUSTOM COMMANDS =================
 if (data.customCommands?.[command]) {
-  const custom = data.customCommands[command];
+  // AI CUSTOM COMMAND
+  if (
+    typeof custom === "object" &&
+    custom.ai === true
+  ) {
+    const aiReply = await generateAiReply(message, command);
+
+    if (!aiReply) {
+      return message.reply("AI unavailable rn.");
+    }
+
+    return message.channel.send({
+      content: aiReply,
+      allowedMentions: {
+        parse: []
+      }
+    });
+  }
 
   const response =
     typeof custom === "string"
