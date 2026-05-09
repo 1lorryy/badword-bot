@@ -531,6 +531,12 @@ if (data.customCommands?.[command]) {
 
   // ================= KICK =================
 if (command === "kick") {
+
+  // NO TARGET = show usage only
+  if (!args[0]) {
+    return message.reply(`Usage: \`${prefix}kick @user reason\``);
+  }
+
   if (!canManageGuild(message)) {
     return message.reply("❌ No permission.");
   }
@@ -540,25 +546,21 @@ if (command === "kick") {
   }
 
   const member = await findTargetMember(message, args);
+
+  // INVALID TARGET = show usage only
   if (!member) {
     return message.reply(`Usage: \`${prefix}kick @user reason\``);
   }
 
-  if (member.id === message.author.id) {
-  return message.reply("❌ You really tried to kick yourself? 💀 rage quit manually bro.");
-}
-
-if (member.id === message.guild.ownerId) {
-  return message.reply("❌ That’s the server owner… they built this place 😭 you’re not evicting them.");
-}
-
-if (isStaffMember(member)) {
-  return message.reply("❌ Kicking staff? That’s a bold strategy… let’s not 😎");
-}
-
-if (!member.kickable) {
-  return message.reply("❌ I tried… but they’re basically untouchable 😔 (role too high)");
-}
+  // SILENTLY BLOCK STAFF/OWNER/SELF
+  if (
+    member.id === message.author.id ||
+    member.id === message.guild.ownerId ||
+    isStaffMember(member) ||
+    !member.kickable
+  ) {
+    return;
+  }
 
   const reason = args.slice(1).join(" ") || "No reason";
 
@@ -581,6 +583,12 @@ if (!member.kickable) {
 
   // ================= BAN =================
 if (command === "ban") {
+
+  // NO TARGET = show usage only
+  if (!args[0]) {
+    return message.reply(`Usage: \`${prefix}ban @user reason\``);
+  }
+
   if (!canBanUsers(message)) {
     return message.reply("❌ Only admin+ can ban.");
   }
@@ -590,27 +598,23 @@ if (command === "ban") {
   }
 
   const member = await findTargetMember(message, args);
+
+  // INVALID TARGET = usage only
   if (!member) {
     return message.reply(`Usage: \`${prefix}ban @user reason\``);
   }
 
-  if (member.id === message.author.id) {
-  return message.reply("❌ Bro really tried to ban themselves 💀 self-destruct not available.");
-}
+  // SILENTLY BLOCK STAFF/OWNER/SELF
+  if (
+    member.id === message.author.id ||
+    member.id === message.guild.ownerId ||
+    isStaffMember(member) ||
+    !member.bannable
+  ) {
+    return;
+  }
 
-if (member.id === message.guild.ownerId) {
-  return message.reply("❌ That's the boss... you don’t fire the CEO 😭");
-}
-
-if (isStaffMember(member)) {
-  return message.reply("❌ Woah there, you’re trying to ban the staff? Bold move… denied 😎");
-}
-
-if (!member.bannable) {
-  return message.reply("❌ Their power level is over 9000… I can’t ban them 🤖");
-}
-
-  const reason = args.slice(2).join(" ") || "No reason";
+  const reason = args.slice(1).join(" ") || "No reason";
 
   const embed = new EmbedBuilder()
     .setTitle("🔨 User Banned")
