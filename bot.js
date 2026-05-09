@@ -119,6 +119,7 @@ async function deleteAfter(msg, ms = 5000) {
 
 function canManageGuild(message) {
   if (!message.member) return false;
+
   const roles = message.member.roles.cache;
 
   return (
@@ -129,17 +130,9 @@ function canManageGuild(message) {
   );
 }
 
-function isStaffMember(member) {
-  return (
-    member.roles.cache.has(STAFF_ROLE_ID) ||
-    member.roles.cache.has(MOD_ROLE_ID) ||
-    member.roles.cache.has(MAIN_ADMIN_ROLE_ID) ||
-    member.permissions.has(PermissionsBitField.Flags.Administrator)
-  );
-}
-
 function canBanUsers(message) {
   if (!message.member) return false;
+
   const roles = message.member.roles.cache;
 
   return (
@@ -158,7 +151,10 @@ function isStaffMember(member) {
 }
 
 function hasBypassRole(message) {
-  return !!(BYPASS_ROLE_ID && message.member?.roles?.cache?.has(BYPASS_ROLE_ID));
+  return !!(
+    BYPASS_ROLE_ID &&
+    message.member?.roles?.cache?.has(BYPASS_ROLE_ID)
+  );
 }
 
 async function findTargetMember(message, args) {
@@ -168,22 +164,33 @@ async function findTargetMember(message, args) {
   const input = args[0];
   if (!input) return null;
 
-  const byId = await message.guild.members.fetch(input).catch(() => null);
+  // USER ID
+  const byId = await message.guild.members
+    .fetch(input)
+    .catch(() => null);
+
   if (byId) return byId;
 
   const search = input.toLowerCase();
 
-  return message.guild.members.cache.find(m =>
-    m.user.username.toLowerCase() === search ||
-    m.displayName.toLowerCase() === search ||
-    m.user.tag.toLowerCase() === search
-  ) || null;
+  // USERNAME / DISPLAY NAME / TAG
+  return (
+    message.guild.members.cache.find(
+      m =>
+        m.user.username.toLowerCase() === search ||
+        m.displayName.toLowerCase() === search ||
+        m.user.tag.toLowerCase() === search
+    ) || null
+  );
 }
 
 function parseDuration(input) {
   if (!input) return null;
 
-  const match = String(input).toLowerCase().match(/^(\d+)(s|sec|m|min|h|hr|d|day)$/);
+  const match = String(input)
+    .toLowerCase()
+    .match(/^(\d+)(s|sec|m|min|h|hr|d|day)$/);
+
   if (!match) return null;
 
   const amount = parseInt(match[1], 10);
@@ -213,7 +220,10 @@ function containsBlacklistedWord(content, words) {
       .map(escapeRegex)
       .join("[\\s._-]*");
 
-    const regex = new RegExp(`(^|[^a-z0-9])${letters}([^a-z0-9]|$)`, "i");
+    const regex = new RegExp(
+      `(^|[^a-z0-9])${letters}([^a-z0-9]|$)`,
+      "i"
+    );
 
     if (regex.test(text)) return word;
   }
@@ -225,17 +235,36 @@ function containsBlacklistedWord(content, words) {
 }
 
 async function sendAutomodLog(message, word) {
-  const log = await message.guild.channels.fetch(LOG_CHANNEL_ID).catch(() => null);
+  const log = await message.guild.channels
+    .fetch(LOG_CHANNEL_ID)
+    .catch(() => null);
+
   if (!log || !log.isTextBased()) return;
 
   const embed = new EmbedBuilder()
     .setTitle("🚫 Blacklisted Message Deleted")
     .setColor(0xef4444)
     .addFields(
-      { name: "User", value: `${message.author.tag}`, inline: true },
-      { name: "Channel", value: `${message.channel}`, inline: true },
-      { name: "Matched", value: `\`${word}\``, inline: true },
-      { name: "Message", value: message.content.slice(0, 1000), inline: false }
+      {
+        name: "User",
+        value: `${message.author.tag}`,
+        inline: true
+      },
+      {
+        name: "Channel",
+        value: `${message.channel}`,
+        inline: true
+      },
+      {
+        name: "Matched",
+        value: `\`${word}\``,
+        inline: true
+      },
+      {
+        name: "Message",
+        value: message.content.slice(0, 1000),
+        inline: false
+      }
     )
     .setTimestamp();
 
@@ -243,8 +272,12 @@ async function sendAutomodLog(message, word) {
 }
 
 async function sendModLog(embed) {
-  const log = await client.channels.fetch(LOG_CHANNEL_ID).catch(() => null);
+  const log = await client.channels
+    .fetch(LOG_CHANNEL_ID)
+    .catch(() => null);
+
   if (!log || !log.isTextBased()) return;
+
   await log.send({ embeds: [embed] }).catch(() => null);
 }
 
