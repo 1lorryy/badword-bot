@@ -5,6 +5,7 @@ const { handleAuctionCommand } = require("./commands/auction");
 const { handleModLogsCommand } = require("./commands/modlogs");
 const { generateAiReply } = require("./commands/aiReply");
 
+
 const fs = require("fs");
 const path = require("path");
 
@@ -19,7 +20,12 @@ const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, "guild-data.json
 
 const DEFAULT_PREFIX = process.env.DEFAULT_PREFIX || "?";
 const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID || "1492845794192134245";
-const BYPASS_ROLE_ID = process.env.BYPASS_ROLE_ID || "";
+const BYPASS_ROLE_IDS = (
+  process.env.BYPASS_ROLE_IDS || ""
+)
+  .split(",")
+  .map(id => id.trim())
+  .filter(Boolean);
 
 const STAFF_ROLE_ID = "1481370041420087474";
 const MOD_ROLE_ID = "1481370041432932379";
@@ -62,7 +68,18 @@ const CORE_BLACKLIST = [
   "cunt",
   "possay",
   "sexcam",
-  "bubs"
+  "bubs",
+  "fuck"
+];
+
+const PROTECTED_BLACKLIST = [
+  "nigga",
+  "nigger",
+  "nga",
+  "retard",
+  "faggot",
+  "fagot",
+  "tard",
 ];
 
 let client;
@@ -121,13 +138,12 @@ async function deleteAfter(msg, ms = 5000) {
 function canManageGuild(message) {
   if (!message.member) return false;
 
-  const roles = message.member.roles.cache;
-
   return (
     message.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
-    roles.has(MAIN_ADMIN_ROLE_ID) ||
-    roles.has(STAFF_ROLE_ID) ||
-    roles.has(MOD_ROLE_ID)
+    message.member.permissions.has(PermissionsBitField.Flags.ManageChannels) ||
+    message.member.roles.cache.has(MAIN_ADMIN_ROLE_ID) ||
+    message.member.roles.cache.has(STAFF_ROLE_ID) ||
+    message.member.roles.cache.has(MOD_ROLE_ID)
   );
 }
 
@@ -152,9 +168,8 @@ function isStaffMember(member) {
 }
 
 function hasBypassRole(message) {
-  return !!(
-    BYPASS_ROLE_ID &&
-    message.member?.roles?.cache?.has(BYPASS_ROLE_ID)
+  return message.member?.roles?.cache?.some(role =>
+    BYPASS_ROLE_IDS.includes(role.id)
   );
 }
 
@@ -165,24 +180,36 @@ async function findTargetMember(message, args) {
   const input = args[0];
   if (!input) return null;
 
+  // remove @ if typed manually
+  const clean = input.replace(/^@/, "");
+
   // USER ID
   const byId = await message.guild.members
-    .fetch(input)
+    .fetch(clean)
     .catch(() => null);
 
   if (byId) return byId;
 
-  const search = input.toLowerCase();
+  const search = clean.toLowerCase();
 
-  // USERNAME / DISPLAY NAME / TAG
-  return (
-    message.guild.members.cache.find(
-      m =>
-        m.user.username.toLowerCase() === search ||
-        m.displayName.toLowerCase() === search ||
-        m.user.tag.toLowerCase() === search
-    ) || null
+  // exact username/display/tag
+  let found = message.guild.members.cache.find(
+    m =>
+      m.user.username.toLowerCase() === search ||
+      m.displayName.toLowerCase() === search ||
+      m.user.tag.toLowerCase() === search
   );
+
+  if (found) return found;
+
+  // partial match
+  found = message.guild.members.cache.find(
+    m =>
+      m.user.username.toLowerCase().includes(search) ||
+      m.displayName.toLowerCase().includes(search)
+  );
+
+  return found || null;
 }
 
 function parseDuration(input) {
@@ -293,52 +320,49 @@ async function handleCommands(message) {
   const command = (args.shift() || "").toLowerCase();
   if (!command) return true;
 
-/// ================= CUSTOM COMMANDS =================
-if (data.customCommands?.[command]) {
-  // AI CUSTOM COMMAND
-  if (
-    typeof custom === "object" &&
-    custom.ai === true
-  ) {
-    const aiReply = await generateAiReply(message, command);
+  // ================= CUSTOM COMMANDS =================
+  if (data.customCommands?.[command]) {
+    const custom = data.customCommands[command];
 
-    if (!aiReply) {
-      return message.reply("AI unavailable rn.");
+    if (typeof custom === "object" && custom.ai === true) {
+      let aiReply = null;
+
+try {
+  aiReply = await generateAiReply(message, message.content);
+} catch (err) {
+  console.error("AI unavailable:", err.code || err.message);
+  return true;
+}
+
+      if (!aiReply) return message.reply("AI unavailable rn.");
+
+      return message.channel.send({
+        content: aiReply,
+        allowedMentions: { parse: [] }
+      });
+    }
+
+    const response =
+      typeof custom === "string"
+        ? custom
+        : custom.response || "No response set.";
+
+    const allowPings =
+      typeof custom === "object" &&
+      custom.allowPings === true;
+
+    if (allowPings) {
+      return message.reply({
+        content: response,
+        allowedMentions: { repliedUser: true }
+      });
     }
 
     return message.channel.send({
-      content: aiReply,
-      allowedMentions: {
-        parse: []
-      }
-    });
-  }
-
-  const response =
-    typeof custom === "string"
-      ? custom
-      : custom.response || "No response set.";
-
-  const allowPings =
-    typeof custom === "object" &&
-    custom.allowPings === true;
-
-  if (allowPings) {
-    return message.reply({
       content: response,
-      allowedMentions: {
-        repliedUser: true
-      }
+      allowedMentions: { parse: [] }
     });
   }
-
-  return message.channel.send({
-    content: response,
-    allowedMentions: {
-      parse: []
-    }
-  });
-}
 
   // ================= AFK / AUCTION / CHANNEL TOOLS =================
   if (command === "purchase") return handleBuyCommand(message, args, prefix, canManageGuild);
@@ -347,7 +371,7 @@ if (data.customCommands?.[command]) {
   if (command === "bid") return handleAuctionCommand(message, ["bid", ...args], prefix);
   if (command === "modlogs") return handleModLogsCommand(message, args, prefix, getGuildData);
 
-  if (["slowmode", "lock", "unlock"].includes(command)) {
+  if (["slowmode"].includes(command)) {
     return handleChannelToolsCommand(message, args, prefix, command, canManageGuild);
   }
 
@@ -821,7 +845,7 @@ if (command === "ban") {
     { name: "⚙️ Server", value: `\`${prefix}setprefix\` • \`${prefix}role\` • \`${prefix}setnick\` • \`${prefix}purchase\``, inline: false },
     { name: "🚫 AutoMod", value: `\`${prefix}bl\` • \`${prefix}unbl\` • \`${prefix}words\``, inline: false },
     { name: "🏆 Auction", value: `\`${prefix}auction start\` • \`${prefix}bid\` • \`${prefix}auction end\``, inline: false },
-    { name: "🔒 Channels", value: `\`${prefix}lock\` • \`${prefix}unlock\` • \`${prefix}slowmode\``, inline: false },
+    { name: "🔒 Channels", value: `\`${prefix}slowmode\``, inline: false },
     { name: "💤 Utility", value: `\`${prefix}afk\` • \`${prefix}ping\``, inline: false }
   );
 
@@ -841,7 +865,20 @@ embed.setFooter({ text: "🔥 DASHBOARD Bot" });
 return message.reply({ embeds: [embed] });
   }
 
-  return false;
+  // ================= AI FALLBACK CHAT =================
+const aiReply = await generateAiReply(message, message.content);
+
+if (aiReply) {
+  return message.reply({
+    content: aiReply,
+    allowedMentions: {
+      parse: [],
+      repliedUser: false
+    }
+  });
+}
+
+return true;
 }
 
 // ================= BOT START =================
@@ -884,74 +921,115 @@ function startBot() {
   });
 
   client.on("messageCreate", async (message) => {
-    try {
-      if (message.author.bot) return;
-      if (!message.guild) return;
-      if (!message.content) return;
+  try {
+    if (message.author.bot) return;
+    if (!message.guild) return;
+    if (!message.content) return;
 
-      const data = getGuildData(message.guild.id);
-      const prefix = data.prefix || DEFAULT_PREFIX;
+    // ================= REPLY TO BOT AI =================
+    if (message.reference && message.reference.messageId) {
+      const replied = await message.channel.messages
+        .fetch(message.reference.messageId)
+        .catch(() => null);
 
-      await handleAfkMentionsAndReturn(message, prefix);
+      if (replied && replied.author.id === client.user.id) {
+        const aiReply = await generateAiReply(message, message.content);
 
-      // ================= AUTOMOD =================
-      if (!message.content.startsWith(prefix) && !hasBypassRole(message)) {
-        const word = containsBlacklistedWord(message.content, [
-          ...CORE_BLACKLIST,
-          ...data.words,
-          ...(data.blockedLinks || [])
-        ]);
-
-        if (word) {
-          await message.delete().catch(() => null);
-          await sendAutomodLog(message, word);
-          return;
-        }
-      }
-
-      // ================= PREFIX COMMANDS =================
-      const usedCommand = await handleCommands(message);
-
-      // ================= CUSTOM COMMANDS WITHOUT PREFIX =================
-      if (!usedCommand) {
-        const freshData = getGuildData(message.guild.id);
-        const msg = message.content.toLowerCase().trim();
-
-        const custom = freshData.customCommands?.[msg];
-
-        if (custom) {
-          const response =
-            typeof custom === "string"
-              ? custom
-              : custom.response || "No response set.";
-
-          const allowPings =
-            typeof custom === "object" &&
-            custom.allowPings === true;
-
-          // Allow pings ON = reply + ping user
-          if (allowPings) {
-            return message.reply({
-              content: response,
-              allowedMentions: {
-                repliedUser: true
-              }
-            });
-          }
-
-          // Allow pings OFF = normal message, no ping
-          return message.channel.send({
-            content: response,
+        if (aiReply) {
+          return message.reply({
+            content: aiReply,
             allowedMentions: {
-              parse: []
+              parse: [],
+              repliedUser: false
             }
           });
         }
       }
-    } catch (err) {
-      console.error("Bot error:", err);
     }
-  });
+
+    const data = getGuildData(message.guild.id);
+    const prefix = data.prefix || DEFAULT_PREFIX;
+
+    await handleAfkMentionsAndReturn(message, prefix);
+
+// ================= AUTOMOD =================
+const isCommand = message.content.startsWith(prefix);
+const isBypass = hasBypassRole(message);
+
+// THESE WORDS ARE BLOCKED FOR EVERYONE
+const protectedWord = containsBlacklistedWord(
+  message.content,
+  PROTECTED_BLACKLIST
+);
+
+if (protectedWord) {
+  await message.delete().catch(() => null);
+  await sendAutomodLog(message, protectedWord);
+  return;
+}
+
+// NORMAL BLACKLIST ONLY FOR NON-BYPASS USERS
+if (!isCommand && !isBypass) {
+  const normalBlacklist = [
+    ...CORE_BLACKLIST.filter(
+      w => !PROTECTED_BLACKLIST.includes(w)
+    ),
+    ...data.words,
+    ...(data.blockedLinks || [])
+  ];
+
+  const word = containsBlacklistedWord(
+    message.content,
+    normalBlacklist
+  );
+
+  if (word) {
+    await message.delete().catch(() => null);
+    await sendAutomodLog(message, word);
+    return;
+  }
+}
+    // ================= PREFIX COMMANDS =================
+    const usedCommand = await handleCommands(message);
+
+    // ================= CUSTOM COMMANDS WITHOUT PREFIX =================
+    if (!usedCommand) {
+      const freshData = getGuildData(message.guild.id);
+      const msg = message.content.toLowerCase().trim();
+
+      const custom = freshData.customCommands?.[msg];
+
+      if (custom) {
+        const response =
+          typeof custom === "string"
+            ? custom
+            : custom.response || "No response set.";
+
+        const allowPings =
+          typeof custom === "object" &&
+          custom.allowPings === true;
+
+        if (allowPings) {
+          return message.reply({
+            content: response,
+            allowedMentions: {
+              repliedUser: true
+            }
+          });
+        }
+
+        return message.channel.send({
+          content: response,
+          allowedMentions: {
+            parse: []
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Bot error:", err);
+  }
+});
 
   client.login(process.env.DISCORD_TOKEN);
 }
