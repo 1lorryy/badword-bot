@@ -960,11 +960,32 @@ function startBot() {
 
     await handleAfkMentionsAndReturn(message, prefix);
 
-// ================= AUTOMOD =================
-const isCommand = message.content.startsWith(prefix);
-const isBypass = hasBypassRole(message);
+// ================= BYPASS ROLE DISCORD INVITE ALLOW =================
 
-// THESE WORDS ARE BLOCKED FOR EVERYONE
+const bypassRoleId = "1492630307650666546";
+
+const hasBypassDiscordInvite =
+  message.member.roles.cache.has(bypassRoleId);
+
+const discordInviteRegex =
+  /(https?:\/\/)?(www\.)?(discord\.gg|discord\.com\/invite)\/\S+/gi;
+
+const containsDiscordInvite =
+  discordInviteRegex.test(message.content);
+
+const allowDiscordInvite =
+  hasBypassDiscordInvite && containsDiscordInvite;
+
+// ================= AUTOMOD =================
+
+const isCommand = message.content.startsWith(prefix);
+
+const bypassRoleId = "1492630307650666546";
+
+const hasInviteBypass =
+  message.member.roles.cache.has(bypassRoleId);
+
+// protected words = ALWAYS blocked
 const protectedWord = containsBlacklistedWord(
   message.content,
   PROTECTED_BLACKLIST
@@ -976,22 +997,46 @@ if (protectedWord) {
   return;
 }
 
-// NORMAL BLACKLIST ONLY FOR NON-BYPASS USERS
-if (!isCommand && !isBypass) {
-  const normalBlacklist = [
-    ...CORE_BLACKLIST.filter(
-      w => !PROTECTED_BLACKLIST.includes(w)
-    ),
-    ...data.words,
-    ...(data.blockedLinks || [])
-  ];
+// detect discord invites
+const containsDiscordInvite =
+  message.content.includes("discord.gg/") ||
+  message.content.includes("discord.com/invite/");
+
+// remove discord invite checks for bypass users
+let blockedLinks = [...(data.blockedLinks || [])];
+
+if (hasInviteBypass) {
+  blockedLinks = blockedLinks.filter(
+    l =>
+      l !== "discord.gg/" &&
+      l !== "discord.com/invite/"
+  );
+}
+
+// normal automod
+if (!isCommand) {
 
   const word = containsBlacklistedWord(
     message.content,
-    normalBlacklist
+    [
+      ...CORE_BLACKLIST,
+      ...data.words,
+      ...blockedLinks
+    ]
   );
 
-  if (word) {
+  // allow ONLY discord invites for bypass role
+  if (
+    word &&
+    !(
+      hasInviteBypass &&
+      containsDiscordInvite &&
+      (
+        word === "discord.gg/" ||
+        word === "discord.com/invite/"
+      )
+    )
+  ) {
     await message.delete().catch(() => null);
     await sendAutomodLog(message, word);
     return;
